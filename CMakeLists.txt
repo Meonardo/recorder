@@ -14,11 +14,9 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
 )
 
-set(OBS_VERSION_OVERRIDE "29.0.0")
-set(OBS_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/obs-studio")
-message(STATUS "OBS_ROOT_DIR: ${OBS_ROOT_DIR}")
-
-add_subdirectory(${OBS_ROOT_DIR})
+if(NOT TARGET OBS::w32-pthreads)
+  add_subdirectory("${CMAKE_SOURCE_DIR}/deps/w32-pthreads" "${CMAKE_BINARY_DIR}/deps/w32-pthreads")
+endif()
 
 set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 set_target_properties(
