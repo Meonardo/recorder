@@ -1,0 +1,4 @@
+[submodule "deps/obs-studio"]
+	path = deps/obs-studio
+	url = https://github.com/Meonardo/obs-studio.git
+	branch = recorder
