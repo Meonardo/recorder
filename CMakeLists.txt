@@ -33,6 +33,14 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.ui
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-preview.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-preview.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-display.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-display.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-wrappers.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-wrappers.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/display-helpers.hpp
 )
 
 find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)
