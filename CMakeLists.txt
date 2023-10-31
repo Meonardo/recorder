@@ -1,25 +1,38 @@
 cmake_minimum_required(VERSION 3.22...3.25)
 
-project(recorder VERSION 0.0.1)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(${PROJECT_NAME})
-
 if(NOT TARGET OBS::w32-pthreads)
   add_subdirectory("${CMAKE_SOURCE_DIR}/deps/w32-pthreads" "${CMAKE_BINARY_DIR}/deps/w32-pthreads")
+endif()
+
+if(NOT TARGET OBS::obs-frontend-api)
+  add_subdirectory("${CMAKE_SOURCE_DIR}/UI/obs-frontend-api" "${CMAKE_BINARY_DIR}/UI/obs-frontend-api")
 endif()
 
 if(NOT TARGET OBS::json11)
   add_subdirectory("${CMAKE_SOURCE_DIR}/deps/json11" "${CMAKE_BINARY_DIR}/deps/json11")
 endif()
 
+add_executable(recorder)
+
+find_qt(COMPONENTS Widgets Core COMPONENTS_LINUX Gui)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Widgets Qt::Core)
+set_target_properties(
+  ${PROJECT_NAME}
+  PROPERTIES AUTOMOC ON
+             AUTOUIC ON
+             AUTORCC ON)
+
 target_sources(
   ${PROJECT_NAME}
   PRIVATE
 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.ui
 )
 
 find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)
@@ -34,6 +47,7 @@ target_link_libraries(
   OBS::libobs
   OBS::frontend-api
   OBS::json11
+  OBS::w32-pthreads
 )
 
 set_property(
@@ -61,6 +75,11 @@ endforeach()
 get_property(obs_module_list GLOBAL PROPERTY OBS_MODULES_ENABLED)
 list(JOIN obs_module_list "|" SAFE_MODULES)
 target_compile_definitions(${PROJECT_NAME} PRIVATE "SAFE_MODULES=\"${SAFE_MODULES}\"")
+
+get_property(obs_executables GLOBAL PROPERTY _OBS_EXECUTABLES)
+get_property(obs_modules GLOBAL PROPERTY OBS_MODULES_ENABLED)
+message(STATUS "  Executables: ${obs_executables}")
+message(STATUS "  Modules: ${obs_modules}")
 
 # cmake-format: off
 set_target_properties_obs(${PROJECT_NAME} PROPERTIES FOLDER frontend OUTPUT_NAME "$<IF:$<PLATFORM_ID:Windows>,recorder64,recorder>")
