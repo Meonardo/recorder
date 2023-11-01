@@ -7,7 +7,7 @@ if(NOT TARGET OBS::w32-pthreads)
   add_subdirectory("${CMAKE_SOURCE_DIR}/deps/w32-pthreads" "${CMAKE_BINARY_DIR}/deps/w32-pthreads")
 endif()
 
-if(NOT TARGET OBS::obs-frontend-api)
+if(NOT TARGET OBS::frontend-api)
   add_subdirectory("${CMAKE_SOURCE_DIR}/UI/obs-frontend-api" "${CMAKE_BINARY_DIR}/UI/obs-frontend-api")
 endif()
 
@@ -17,7 +17,7 @@ endif()
 
 add_executable(recorder)
 
-find_qt(COMPONENTS Widgets Core COMPONENTS_LINUX Gui)
+find_qt(COMPONENTS Widgets Core)
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Widgets Qt::Core)
 set_target_properties(
   ${PROJECT_NAME}
@@ -41,6 +41,15 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-wrappers.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-wrappers.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/display-helpers.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-app.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-app.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/api-interface.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/platform.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/platform-windows.cpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-main-profiles.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-main-outputs.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-main-outputs.hpp
 )
 
 find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)
