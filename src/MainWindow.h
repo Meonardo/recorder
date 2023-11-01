@@ -44,9 +44,17 @@
 struct BasicOutputHandler;
 
 enum class QtDataRole {
-  OBSRef = Qt::UserRole,
-  OBSSignals,
+	OBSRef = Qt::UserRole,
+	OBSSignals,
 };
+
+namespace {
+
+template<typename OBSRef> struct SignalContainer {
+	OBSRef ref;
+	std::vector<std::shared_ptr<OBSSignal>> handlers;
+};
+} // namespace
 
 class MainWindow : public OBSMainWindow {
 	Q_OBJECT
@@ -111,6 +119,10 @@ public:
 		return OBSSource(obs_scene_get_source(curScene));
 	}
 	inline bool SavingDisabled() const { return disableSaving; }
+protected:
+  virtual bool nativeEvent(const QByteArray& eventType, void* message,
+    qintptr* result) override;
+  virtual void changeEvent(QEvent* event) override;
 
 public slots:
 	void SetCurrentScene(OBSSource scene, bool force = false);
@@ -123,11 +135,23 @@ private slots:
 	void on_actionImportProfile_triggered();
 	void on_actionExportProfile_triggered();
 
+	void on_scenes_currentItemChanged(QListWidgetItem* current, QListWidgetItem* prev);
+
+	void AddSceneItem(OBSSceneItem item);
+	void AddScene(OBSSource source);
+	void RemoveScene(OBSSource source);
+
+	void DuplicateSelectedScene();
+  void EnablePreviewDisplay(bool enable);
+
 private:
 	// UI member
 	Ui::MainWindowClass* ui;
 	OBSDataAutoRelease safeModeModuleData;
 	std::vector<OBSSignal> signalHandlers;
+	std::vector<QListWidgetItem*> scenes;
+	std::vector<OBSSceneItem> sources;
+
 	// configures
 	float dpi = 1.0;
 	ConfigFile basicConfig;
@@ -173,8 +197,14 @@ private:
 	OBSWeakSource lastProgramScene;
 
 	std::atomic<obs_scene_t*> currentScene = nullptr;
+
+  // output & services
 	std::unique_ptr<BasicOutputHandler> outputHandler;
 	OBSService service;
+
+  // transitions
+  obs_source_t* fadeTransition;
+  obs_source_t* cutTransition;
 
 	void OnFirstLoad();
 	void SaveProjectNow();
@@ -204,6 +234,7 @@ private:
 
 	void LoadSceneListOrder(obs_data_array_t* array);
 	obs_data_array_t* SaveSceneListOrder();
+	void LogScenes();
 
 	void CreateFirstRunSources();
 	void CreateDefaultScene(bool firstStart);
@@ -237,4 +268,10 @@ private:
 
 	void SetCurrentScene(obs_scene_t* scene, bool force = false);
 	void ResizePreview(uint32_t cx, uint32_t cy);
+
+  // transitions
+  void InitDefaultTransitions();
+  void InitTransition(obs_source_t* transition);
+  void SetTransition(OBSSource transition);
+  void TransitionToScene(OBSSource source);
 };

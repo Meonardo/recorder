@@ -53,6 +53,14 @@
 #define DEFAULT_CONTAINER "fragmented_mp4"
 #endif
 
+template<typename T> static T GetOBSRef(QListWidgetItem* item) {
+	return item->data(static_cast<int>(QtDataRole::OBSRef)).value<T>();
+}
+
+template<typename T> static void SetOBSRef(QListWidgetItem* item, T&& val) {
+	item->setData(static_cast<int>(QtDataRole::OBSRef), QVariant::fromValue(val));
+}
+
 // externs
 extern obs_frontend_callbacks* InitializeAPIInterface(MainWindow* main);
 extern bool EncoderAvailable(const char* encoder);
@@ -410,8 +418,11 @@ static void SetSafeModuleNames() {
 }
 // end of static methods
 
-MainWindow::MainWindow(QWidget* parent) : OBSMainWindow(parent), ui(new Ui::MainWindowClass) {
+MainWindow::MainWindow(QWidget* parent) : OBSMainWindow(parent), ui(new Ui::MainWindowClass()) {
 	setAttribute(Qt::WA_NativeWindow);
+
+	setAcceptDrops(true);
+	setContextMenuPolicy(Qt::CustomContextMenu);
 
 	api = InitializeAPIInterface(this);
 
@@ -557,6 +568,9 @@ void MainWindow::OBSInit() {
 	else if (!previewEnabled && IsPreviewProgramMode())
 		QMetaObject::invokeMethod(this, "EnablePreviewDisplay", Qt::QueuedConnection,
 					  Q_ARG(bool, true));
+
+	obs_display_set_enabled(ui->preview->GetDisplay(), previewEnabled);
+	ui->preview->setVisible(previewEnabled);
 
 	RefreshProfiles();
 	disableSaving--;
@@ -1051,6 +1065,25 @@ void MainWindow::GetFPSCommon(uint32_t& num, uint32_t& den) const {
 	}
 }
 
+void MainWindow::LogScenes() {
+	blog(LOG_INFO, "------------------------------------------------");
+	blog(LOG_INFO, "Loaded scenes:");
+
+	for (int i = 0; i < scenes.size(); i++) {
+		QListWidgetItem* item = scenes[i];
+		OBSScene scene = GetOBSRef<OBSScene>(item);
+
+		obs_source_t* source = obs_scene_get_source(scene);
+		const char* name = obs_source_get_name(source);
+
+		blog(LOG_INFO, "- scene '%s':", name);
+		obs_scene_enum_items(scene, LogSceneItem, (void*)(intptr_t)1);
+		obs_source_enum_filters(source, LogFilter, (void*)(intptr_t)1);
+	}
+
+	blog(LOG_INFO, "------------------------------------------------");
+}
+
 void MainWindow::Load(const char* file) {
 	disableSaving++;
 
@@ -1068,7 +1101,7 @@ void MainWindow::Load(const char* file) {
 
 void MainWindow::LoadData(obs_data_t* data, const char* file) {
 	ClearSceneData();
-
+	InitDefaultTransitions();
 	/* Exit OBS if clearing scene data failed for some reason. */
 	if (clearingFailed) {
 		close();
@@ -1216,7 +1249,7 @@ retryScene:
 		opt_start_virtualcam = false;
 	}
 
-	//LogScenes();
+	LogScenes();
 
 	if (!App()->IsMissingFilesCheckDisabled()) {
 		//ShowMissingFilesDialog(files);
@@ -1305,8 +1338,44 @@ void MainWindow::ClearSceneData() {
 	}
 }
 
-template<typename T> static T GetOBSRef(QListWidgetItem* item) {
-	return item->data(static_cast<int>(QtDataRole::OBSRef)).value<T>();
+bool MainWindow::nativeEvent(const QByteArray&, void* message, qintptr*) {
+#ifdef _WIN32
+	const MSG& msg = *static_cast<MSG*>(message);
+	switch (msg.message) {
+	case WM_MOVE:
+		for (OBSQTDisplay* const display : findChildren<OBSQTDisplay*>()) {
+			display->OnMove();
+		}
+		break;
+	case WM_DISPLAYCHANGE:
+		for (OBSQTDisplay* const display : findChildren<OBSQTDisplay*>()) {
+			display->OnDisplayChange();
+		}
+	}
+#else
+	UNUSED_PARAMETER(message);
+#endif
+
+	return false;
+}
+
+void MainWindow::changeEvent(QEvent* event) {
+	if (event->type() == QEvent::WindowStateChange) {
+		QWindowStateChangeEvent* stateEvent = (QWindowStateChangeEvent*)event;
+
+		if (isMinimized()) {
+			if (previewEnabled)
+				EnablePreviewDisplay(false);
+		} else if (stateEvent->oldState() & Qt::WindowMinimized && isVisible()) {
+			if (previewEnabled)
+				EnablePreviewDisplay(true);
+		}
+	}
+}
+
+void MainWindow::EnablePreviewDisplay(bool enable) {
+	obs_display_set_enabled(ui->preview->GetDisplay(), enable);
+	ui->preview->setVisible(enable);
 }
 
 void MainWindow::SetCurrentScene(OBSSource scene, bool force) {
@@ -1318,6 +1387,24 @@ void MainWindow::SetCurrentScene(OBSSource scene, bool force) {
 			if (actualLastScene)
 				obs_source_dec_showing(actualLastScene);
 			lastScene = OBSGetWeakRef(scene);
+		}
+	} else {
+		TransitionToScene(scene);
+	}
+
+	if (obs_scene_get_source(GetCurrentScene()) != scene) {
+		for (int i = 0; i < scenes.size(); i++) {
+			QListWidgetItem* item = scenes[i];
+			OBSScene itemScene = GetOBSRef<OBSScene>(item);
+			obs_source_t* source = obs_scene_get_source(itemScene);
+
+			if (source == scene) {
+				currentScene = itemScene.Get();
+
+				if (api)
+					api->on_event(OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED);
+				break;
+			}
 		}
 	}
 
@@ -1971,6 +2058,9 @@ void MainWindow::CreateDefaultScene(bool firstStart) {
 	disableSaving++;
 
 	ClearSceneData();
+	InitDefaultTransitions();
+
+	SetTransition(fadeTransition);
 
 	OBSSceneAutoRelease scene = obs_scene_create(Str("Basic.Scene"));
 
@@ -2106,4 +2196,246 @@ void MainWindow::SetDisplayAffinity(QWindow* window) {
 	// implement SetDisplayAffinitySupported too!
 	UNUSED_PARAMETER(hideFromCapture);
 #endif
+}
+
+void MainWindow::AddScene(OBSSource source) {
+	const char* name = obs_source_get_name(source);
+	obs_scene_t* scene = obs_scene_from_source(source);
+
+	QListWidgetItem* item = new QListWidgetItem(QT_UTF8(name));
+	SetOBSRef(item, OBSScene(scene));
+	scenes.push_back(item);
+
+	signal_handler_t* handler = obs_source_get_signal_handler(source);
+
+	SignalContainer<OBSScene> container;
+	container.ref = scene;
+	container.handlers.assign({
+	  std::make_shared<OBSSignal>(handler, "item_add", MainWindow::SceneItemAdded, this),
+	});
+
+	item->setData(static_cast<int>(QtDataRole::OBSSignals), QVariant::fromValue(container));
+
+	/* if the scene already has items (a duplicated scene) add them */
+	auto addSceneItem = [this](obs_sceneitem_t* item) {
+		AddSceneItem(item);
+	};
+
+	using addSceneItem_t = decltype(addSceneItem);
+
+	obs_scene_enum_items(
+	  scene,
+	  [](obs_scene_t*, obs_sceneitem_t* item, void* param) {
+		  addSceneItem_t* func;
+		  func = reinterpret_cast<addSceneItem_t*>(param);
+		  (*func)(item);
+		  return true;
+	  },
+	  &addSceneItem);
+
+	SaveProject();
+
+	if (!disableSaving) {
+		obs_source_t* source = obs_scene_get_source(scene);
+		blog(LOG_INFO, "User added scene '%s'", obs_source_get_name(source));
+	}
+
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_SCENE_LIST_CHANGED);
+}
+
+void MainWindow::RemoveScene(OBSSource source) {
+	obs_scene_t* scene = obs_scene_from_source(source);
+
+	QListWidgetItem* sel = nullptr;
+	auto count = (int)scenes.size();
+
+	for (int i = 0; i < count; i++) {
+		auto item = scenes[i];
+		auto cur_scene = GetOBSRef<OBSScene>(item);
+		if (cur_scene != scene)
+			continue;
+
+		sel = item;
+		break;
+	}
+
+	if (sel != nullptr) {
+		delete sel;
+	}
+
+	SaveProject();
+
+	if (!disableSaving) {
+		blog(LOG_INFO, "User Removed scene '%s'", obs_source_get_name(source));
+	}
+
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_SCENE_LIST_CHANGED);
+}
+
+static bool select_one(obs_scene_t* /* scene */, obs_sceneitem_t* item, void* param) {
+	obs_sceneitem_t* selectedItem = reinterpret_cast<obs_sceneitem_t*>(param);
+	if (obs_sceneitem_is_group(item))
+		obs_sceneitem_group_enum_items(item, select_one, param);
+
+	obs_sceneitem_select(item, (selectedItem == item));
+
+	return true;
+}
+
+void MainWindow::AddSceneItem(OBSSceneItem item) {
+	obs_scene_t* scene = obs_sceneitem_get_scene(item);
+
+	if (GetCurrentScene() == scene)
+		sources.push_back(item);
+
+	auto source = obs_sceneitem_get_source(item);
+	obs_source_active(source);
+	obs_source_showing(source);
+	auto name = obs_source_get_name(source);
+	blog(LOG_INFO, "add scene item: %s", name);
+
+	SaveProject();
+
+	if (!disableSaving) {
+		obs_source_t* sceneSource = obs_scene_get_source(scene);
+		obs_source_t* itemSource = obs_sceneitem_get_source(item);
+		blog(LOG_INFO, "User added source '%s' (%s) to scene '%s'",
+		     obs_source_get_name(itemSource), obs_source_get_id(itemSource),
+		     obs_source_get_name(sceneSource));
+
+		obs_scene_enum_items(scene, select_one, (obs_sceneitem_t*)item);
+	}
+}
+
+void MainWindow::DuplicateSelectedScene() {
+	OBSScene curScene = GetCurrentScene();
+
+	if (!curScene)
+		return;
+
+	OBSSource curSceneSource = obs_scene_get_source(curScene);
+	QString format{obs_source_get_name(curSceneSource)};
+	format += " %1";
+
+	int i = 2;
+	QString placeHolderText = format.arg(i);
+	OBSSourceAutoRelease source = nullptr;
+	while ((source = obs_get_source_by_name(QT_TO_UTF8(placeHolderText)))) {
+		placeHolderText = format.arg(++i);
+	}
+
+	for (;;) {
+		std::string name(format.toStdString());
+
+		if (name.empty()) {
+			OBSMessageBox::warning(this, QTStr("NoNameEntered.Title"),
+					       QTStr("NoNameEntered.Text"));
+			continue;
+		}
+
+		obs_source_t* source = obs_get_source_by_name(name.c_str());
+		if (source) {
+			OBSMessageBox::warning(this, QTStr("NameExists.Title"),
+					       QTStr("NameExists.Text"));
+
+			obs_source_release(source);
+			continue;
+		}
+
+		break;
+	}
+}
+
+void MainWindow::on_scenes_currentItemChanged(QListWidgetItem* current, QListWidgetItem*) {
+	OBSSource source;
+
+	if (current) {
+		OBSScene scene = GetOBSRef<OBSScene>(current);
+		source = obs_scene_get_source(scene);
+
+		currentScene = scene;
+	} else {
+		currentScene = NULL;
+	}
+
+	SetCurrentScene(source);
+
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED);
+}
+
+void MainWindow::InitDefaultTransitions() {
+	std::vector<OBSSource> transitions;
+	size_t idx = 0;
+	const char* id;
+
+	/* automatically add transitions that have no configuration (things
+   * such as cut/fade/etc) */
+	while (obs_enum_transition_types(idx++, &id)) {
+		if (!obs_is_source_configurable(id)) {
+			const char* name = obs_source_get_display_name(id);
+
+			OBSSourceAutoRelease tr = obs_source_create_private(id, name, NULL);
+			InitTransition(tr);
+			transitions.emplace_back(tr);
+
+			if (strcmp(id, "fade_transition") == 0)
+				fadeTransition = tr;
+			else if (strcmp(id, "cut_transition") == 0)
+				cutTransition = tr;
+		}
+	}
+
+  for (OBSSource& tr : transitions) {
+    SetTransition(tr);
+  }
+}
+
+void MainWindow::InitTransition(obs_source_t* transition) {
+	auto onTransitionStop = [](void* data, calldata_t*) {
+		MainWindow* window = (MainWindow*)data;
+		QMetaObject::invokeMethod(window, "TransitionStopped", Qt::QueuedConnection);
+	};
+
+	auto onTransitionFullStop = [](void* data, calldata_t*) {
+		MainWindow* window = (MainWindow*)data;
+		QMetaObject::invokeMethod(window, "TransitionFullyStopped", Qt::QueuedConnection);
+	};
+
+	signal_handler_t* handler = obs_source_get_signal_handler(transition);
+	signal_handler_connect(handler, "transition_video_stop", onTransitionStop, this);
+	signal_handler_connect(handler, "transition_stop", onTransitionFullStop, this);
+}
+
+void MainWindow::SetTransition(OBSSource transition) {
+	OBSSourceAutoRelease oldTransition = obs_get_output_source(0);
+
+	if (oldTransition && transition) {
+		obs_transition_swap_begin(transition, oldTransition);
+		obs_set_output_source(0, transition);
+		obs_transition_swap_end(transition, oldTransition);
+	} else {
+		obs_set_output_source(0, transition);
+	}
+
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_TRANSITION_CHANGED);
+}
+
+void MainWindow::TransitionToScene(OBSSource source) {
+	obs_scene_t* scene = obs_scene_from_source(source);
+	bool usingPreviewProgram = IsPreviewProgramMode();
+	if (!scene)
+		return;
+
+	OBSSourceAutoRelease transition = obs_get_output_source(0);
+	if (!transition) {
+		return;
+	}
+
+	obs_transition_set(transition, source);
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_SCENE_CHANGED);
 }
