@@ -3,7 +3,7 @@
 #include <QWidget>
 #include <obs.hpp>
 
-#define GREY_COLOR_BACKGROUND 0xFFFF0000
+#define GREY_COLOR_BACKGROUND 0xFFCCCCCC
 
 class OBSQTDisplay : public QWidget {
 	Q_OBJECT

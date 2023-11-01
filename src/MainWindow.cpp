@@ -1957,7 +1957,7 @@ void MainWindow::RenderMain(void* data, uint32_t, uint32_t) {
 
 	gs_ortho(-window->previewX, right, -window->previewY, bottom, -100.0f, 100.0f);
 
-	window->ui->preview->DrawOverflow();
+	//window->ui->preview->DrawOverflow();
 
 	/* --------------------------------------- */
 
@@ -1981,22 +1981,22 @@ void MainWindow::RenderMain(void* data, uint32_t, uint32_t) {
 	gs_ortho(-window->previewX, right, -window->previewY, bottom, -100.0f, 100.0f);
 	gs_reset_viewport();
 
-	uint32_t targetCX = window->previewCX;
-	uint32_t targetCY = window->previewCY;
+	//uint32_t targetCX = window->previewCX;
+	//uint32_t targetCY = window->previewCY;
 
-	if (window->drawSafeAreas) {
-		RenderSafeAreas(window->actionSafeMargin, targetCX, targetCY);
-		RenderSafeAreas(window->graphicsSafeMargin, targetCX, targetCY);
-		RenderSafeAreas(window->fourByThreeSafeMargin, targetCX, targetCY);
-		RenderSafeAreas(window->leftLine, targetCX, targetCY);
-		RenderSafeAreas(window->topLine, targetCX, targetCY);
-		RenderSafeAreas(window->rightLine, targetCX, targetCY);
-	}
+	//if (window->drawSafeAreas) {
+	//	RenderSafeAreas(window->actionSafeMargin, targetCX, targetCY);
+	//	RenderSafeAreas(window->graphicsSafeMargin, targetCX, targetCY);
+	//	RenderSafeAreas(window->fourByThreeSafeMargin, targetCX, targetCY);
+	//	RenderSafeAreas(window->leftLine, targetCX, targetCY);
+	//	RenderSafeAreas(window->topLine, targetCX, targetCY);
+	//	RenderSafeAreas(window->rightLine, targetCX, targetCY);
+	//}
 
-	window->ui->preview->DrawSceneEditing();
+	//window->ui->preview->DrawSceneEditing();
 
-	if (window->drawSpacingHelpers)
-		window->ui->preview->DrawSpacingHelpers();
+	//if (window->drawSpacingHelpers)
+	//	window->ui->preview->DrawSpacingHelpers();
 
 	/* --------------------------------------- */
 
