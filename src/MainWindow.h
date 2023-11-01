@@ -1,18 +1,18 @@
 #pragma once
 
-#include <QMainWindow>
 #include <QBuffer>
 #include <QAction>
 #include <QThread>
-#include <QWidgetAction>
+#include <QListWidgetItem>
+#include <QModelRoleData>
 
 #include "ui_MainWindow.h"
+#include "window-main.hpp"
 
 #include <memory>
 #include <vector>
 
 #include <obs.hpp>
-#include <util/config-file.h>
 #include <util/platform.h>
 #include <util/util.hpp>
 #include <util/threading.h>
@@ -42,18 +42,10 @@
 #define PREVIEW_EDGE_SIZE 10
 
 struct BasicOutputHandler;
-class QListWidgetItem;
 
-class OBSMainWindow : public QMainWindow {
-	Q_OBJECT
-
-public:
-	inline OBSMainWindow(QWidget* parent) : QMainWindow(parent) {}
-
-	virtual config_t* Config() const = 0;
-	virtual void OBSInit() = 0;
-
-	virtual int GetProfilePath(char* path, size_t size, const char* file) const = 0;
+enum class QtDataRole {
+  OBSRef = Qt::UserRole,
+  OBSSignals,
 };
 
 class MainWindow : public OBSMainWindow {
@@ -61,6 +53,7 @@ class MainWindow : public OBSMainWindow {
 
 	friend class OBSBasicPreview;
 	friend struct OBSStudioAPI;
+	friend struct BasicOutputHandler;
 
 public:
 	MainWindow(QWidget* parent = nullptr);
@@ -68,7 +61,7 @@ public:
 
 	// Public instance
 	static MainWindow* Get();
-  bool Active() const;
+	bool Active() const;
 	virtual config_t* Config() const override;
 	virtual void OBSInit() override;
 	virtual int GetProfilePath(char* path, size_t size, const char* file) const override;
@@ -77,12 +70,13 @@ public:
 	OBSSource GetProgramSource();
 	OBSScene GetCurrentScene();
 
-  void ResetAudioDevice(const char* sourceId, const char* deviceId,
-    const char* deviceDesc, int channel);
+	void ResetAudioDevice(const char* sourceId, const char* deviceId, const char* deviceDesc,
+			      int channel);
 
 	void SaveProjectDeferred();
 	void SaveProject();
 
+	float GetDevicePixelRatio();
 	const char* GetCurrentOutputPath();
 
 	obs_service_t* GetService();
@@ -101,6 +95,12 @@ public:
 	bool InitBasicConfig();
 
 	void InitOBSCallbacks();
+
+	QColor GetSelectionColor() const;
+	QColor GetCropColor() const;
+	QColor GetHoverColor() const;
+
+	void SetDisplayAffinity(QWindow* window);
 
 	/// public inlines
 	inline bool IsPreviewProgramMode() const {
@@ -129,7 +129,7 @@ private:
 	OBSDataAutoRelease safeModeModuleData;
 	std::vector<OBSSignal> signalHandlers;
 	// configures
-  float dpi = 1.0;
+	float dpi = 1.0;
 	ConfigFile basicConfig;
 	volatile bool previewProgramMode = false;
 	bool loaded = false;
@@ -139,7 +139,7 @@ private:
 	bool closing = false;
 	bool clearingFailed = false;
 	bool drawSafeAreas = false;
-  bool drawSpacingHelpers = true;
+	bool drawSpacingHelpers = true;
 
 	// preview
 	gs_vertbuffer_t* box = nullptr;
@@ -176,7 +176,7 @@ private:
 	std::unique_ptr<BasicOutputHandler> outputHandler;
 	OBSService service;
 
-  void OnFirstLoad();
+	void OnFirstLoad();
 	void SaveProjectNow();
 
 	// profiles
@@ -232,9 +232,9 @@ private:
 	void InitPrimitives();
 
 	void UpdatePreviewSafeAreas();
-  void UpdatePreviewSpacingHelpers();
-  void UpdatePreviewOverflowSettings();
+	void UpdatePreviewSpacingHelpers();
+	void UpdatePreviewOverflowSettings();
 
-  void SetCurrentScene(obs_scene_t* scene, bool force = false);
-  void ResizePreview(uint32_t cx, uint32_t cy);
+	void SetCurrentScene(obs_scene_t* scene, bool force = false);
+	void ResizePreview(uint32_t cx, uint32_t cy);
 };

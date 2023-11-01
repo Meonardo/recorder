@@ -17,6 +17,8 @@ endif()
 
 add_executable(recorder)
 
+find_package(Detours REQUIRED)
+
 find_qt(COMPONENTS Widgets Core)
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Widgets Qt::Core)
 set_target_properties(
@@ -29,7 +31,7 @@ target_sources(
   ${PROJECT_NAME}
   PRIVATE
 
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-main.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.ui
@@ -50,6 +52,11 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-main-profiles.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-main-outputs.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-main-outputs.hpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/audio-encoders.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/audio-encoders.cpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/win-dll-blocklist.c
 )
 
 find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)
@@ -65,12 +72,15 @@ target_link_libraries(
   OBS::frontend-api
   OBS::json11
   OBS::w32-pthreads
+  Detours::Detours
 )
 
 set_property(
   TARGET ${PROJECT_NAME}
   APPEND
   PROPERTY AUTORCC_OPTIONS --format-version 1)
+
+target_link_options(${PROJECT_NAME} PRIVATE /IGNORE:4098 /IGNORE:4099)
 
 set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 set_target_properties(
@@ -93,10 +103,9 @@ get_property(obs_module_list GLOBAL PROPERTY OBS_MODULES_ENABLED)
 list(JOIN obs_module_list "|" SAFE_MODULES)
 target_compile_definitions(${PROJECT_NAME} PRIVATE "SAFE_MODULES=\"${SAFE_MODULES}\"")
 
-get_property(obs_executables GLOBAL PROPERTY _OBS_EXECUTABLES)
-get_property(obs_modules GLOBAL PROPERTY OBS_MODULES_ENABLED)
-message(STATUS "  Executables: ${obs_executables}")
-message(STATUS "  Modules: ${obs_modules}")
+if(CMAKE_COMPILE_WARNING_AS_ERROR)
+  add_link_options(/WX)
+endif()
 
 # cmake-format: off
 set_target_properties_obs(${PROJECT_NAME} PROPERTIES FOLDER frontend OUTPUT_NAME "$<IF:$<PLATFORM_ID:Windows>,recorder64,recorder>")

@@ -3,6 +3,7 @@
 #include "qt-wrappers.hpp"
 #include "MainWindow.h"
 #include "window-basic-main-outputs.hpp"
+#include "MainWindow.h"
 
 #include <functional>
 
@@ -97,14 +98,7 @@ struct OBSStudioAPI : obs_frontend_callbacks {
 
 	int obs_frontend_get_tbar_position(void) override { return 0; }
 
-	void obs_frontend_get_scene_collections(std::vector<std::string>& strings) override {
-		auto addCollection = [&](const char* name, const char*) {
-			strings.emplace_back(name);
-			return true;
-		};
-
-		EnumSceneCollections(addCollection);
-	}
+	void obs_frontend_get_scene_collections(std::vector<std::string>& strings) override {}
 
 	char* obs_frontend_get_current_scene_collection(void) override {
 		const char* cur_name =

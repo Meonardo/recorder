@@ -20,9 +20,7 @@
 #include <QApplication>
 #include <QTranslator>
 #include <QPointer>
-#ifndef _WIN32
-#include <QSocketNotifier>
-#endif
+
 #include <obs.hpp>
 #include <util/lexer.h>
 #include <util/profiler.h>
@@ -35,7 +33,7 @@
 #include <vector>
 #include <deque>
 
-#include "MainWindow.h"
+#include "window-main.hpp"
 
 std::string CurrentTimeString();
 std::string CurrentDateTimeString();
@@ -45,7 +43,6 @@ std::string GetFormatString(const char* format, const char* prefix, const char* 
 std::string GetFormatExt(const char* container);
 std::string GetOutputFilename(const char* path, const char* container, bool noSpace, bool overwrite,
 			      const char* format);
-QObject* CreateShortcutFilter();
 
 struct BaseLexer {
 	lexer lex;
@@ -92,7 +89,7 @@ private:
 	bool themeDarkMode = true;
 	ConfigFile globalConfig;
 	TextLookup textLookup;
-	QPointer<MainWindow> mainWindow;
+	QPointer<OBSMainWindow> mainWindow;
 	profiler_name_store_t* profilerNameStore = nullptr;
 	std::vector<UpdateBranch> updateBranches;
 	bool branches_loaded = false;
@@ -241,7 +238,7 @@ bool GetUnusedSceneCollectionFile(std::string& name, std::string& file);
 bool WindowPositionValid(QRect rect);
 
 static inline int GetProfilePath(char* path, size_t size, const char* file) {
-	MainWindow* window = reinterpret_cast<MainWindow*>(App()->GetMainWindow());
+  OBSMainWindow* window = reinterpret_cast<OBSMainWindow*>(App()->GetMainWindow());
 	return window->GetProfilePath(path, size, file);
 }
 

@@ -2,7 +2,7 @@
 
 #include <string>
 
-class OBSBasic;
+class MainWindow;
 
 struct BasicOutputHandler {
 	OBSOutputAutoRelease fileOutput;
@@ -14,7 +14,7 @@ struct BasicOutputHandler {
 	bool delayActive = false;
 	bool replayBufferActive = false;
 	bool virtualCamActive = false;
-	OBSBasic* main;
+  MainWindow* main;
 
 	obs_view_t* virtualCamView = nullptr;
 	video_t* virtualCamVideo = nullptr;
@@ -42,7 +42,7 @@ struct BasicOutputHandler {
 	OBSSignal replayBufferStopping;
 	OBSSignal replayBufferSaved;
 
-	inline BasicOutputHandler(OBSBasic* main_);
+	inline BasicOutputHandler(MainWindow* main_);
 
 	virtual ~BasicOutputHandler(){};
 
@@ -78,5 +78,5 @@ protected:
 					 bool overwrite, const char* format, bool ffmpeg);
 };
 
-BasicOutputHandler* CreateSimpleOutputHandler(OBSBasic* main);
-BasicOutputHandler* CreateAdvancedOutputHandler(OBSBasic* main);
+BasicOutputHandler* CreateSimpleOutputHandler(MainWindow* main);
+BasicOutputHandler* CreateAdvancedOutputHandler(MainWindow* main);

@@ -20,6 +20,8 @@
 #include <functional>
 #include <sstream>
 
+#include <Windows.h>
+
 #include <util/dstr.h>
 #include <util/util.hpp>
 #include <util/platform.h>
@@ -53,10 +55,27 @@
 
 // externs
 extern obs_frontend_callbacks* InitializeAPIInterface(MainWindow* main);
-extern char* get_new_source_name(const char* name, const char* format);
+extern bool EncoderAvailable(const char* encoder);
+extern bool update_nvenc_presets(ConfigFile& config);
 // end of externs
 
 // static methods
+static char* get_new_source_name(const char* name, const char* format) {
+	struct dstr new_name = {0};
+	int inc = 0;
+
+	dstr_copy(&new_name, name);
+
+	for (;;) {
+		OBSSourceAutoRelease existing_source = obs_get_source_by_name(new_name.array);
+		if (!existing_source)
+			break;
+
+		dstr_printf(&new_name, format, name, ++inc + 1);
+	}
+
+	return new_name.array;
+}
 static void SaveAudioDevice(const char* name, int channel, obs_data_t* parent,
 			    std::vector<OBSSource>& audioSources) {
 	OBSSourceAutoRelease source = obs_get_output_source(channel);
@@ -198,30 +217,6 @@ static inline enum video_colorspace GetVideoColorSpaceFromName(const char* name)
 	return colorspace;
 }
 
-static void LoadAudioDevice(const char* name, int channel, obs_data_t* parent) {
-	OBSDataAutoRelease data = obs_data_get_obj(parent, name);
-	if (!data)
-		return;
-
-	OBSSourceAutoRelease source = obs_load_source(data);
-	if (!source)
-		return;
-
-	obs_set_output_source(channel, source);
-
-	const char* source_name = obs_source_get_name(source);
-	blog(LOG_INFO, "[Loaded global audio device]: '%s'", source_name);
-	obs_source_enum_filters(source, LogFilter, (void*)(intptr_t)1);
-	obs_monitoring_type monitoring_type = obs_source_get_monitoring_type(source);
-	if (monitoring_type != OBS_MONITORING_TYPE_NONE) {
-		const char* type = (monitoring_type == OBS_MONITORING_TYPE_MONITOR_ONLY)
-				     ? "monitor only"
-				     : "monitor and output";
-
-		blog(LOG_INFO, "    - monitoring: %s", type);
-	}
-}
-
 static void LogFilter(obs_source_t*, obs_source_t* filter, void* v_val) {
 	const char* name = obs_source_get_name(filter);
 	const char* id = obs_source_get_id(filter);
@@ -268,6 +263,30 @@ static bool LogSceneItem(obs_scene_t*, obs_sceneitem_t* item, void* v_val) {
 	if (obs_sceneitem_is_group(item))
 		obs_sceneitem_group_enum_items(item, LogSceneItem, (void*)(intptr_t)child_indent);
 	return true;
+}
+
+static void LoadAudioDevice(const char* name, int channel, obs_data_t* parent) {
+	OBSDataAutoRelease data = obs_data_get_obj(parent, name);
+	if (!data)
+		return;
+
+	OBSSourceAutoRelease source = obs_load_source(data);
+	if (!source)
+		return;
+
+	obs_set_output_source(channel, source);
+
+	const char* source_name = obs_source_get_name(source);
+	blog(LOG_INFO, "[Loaded global audio device]: '%s'", source_name);
+	obs_source_enum_filters(source, LogFilter, (void*)(intptr_t)1);
+	obs_monitoring_type monitoring_type = obs_source_get_monitoring_type(source);
+	if (monitoring_type != OBS_MONITORING_TYPE_NONE) {
+		const char* type = (monitoring_type == OBS_MONITORING_TYPE_MONITOR_ONLY)
+				     ? "monitor only"
+				     : "monitor and output";
+
+		blog(LOG_INFO, "    - monitoring: %s", type);
+	}
 }
 
 static inline void AddMissingFiles(void* data, obs_source_t* source) {
@@ -1095,10 +1114,9 @@ void MainWindow::LoadData(obs_data_t* data, const char* file) {
 	const char* name = obs_data_get_string(data, "name");
 	OBSSourceAutoRelease curScene;
 	OBSSourceAutoRelease curProgramScene;
-	obs_source_t* curTransition;
 
-	if (!name || !*name)
-		name = curSceneCollection;
+	/*if (!name || !*name)
+		name = curSceneCollection;*/
 
 	LoadAudioDevice(DESKTOP_AUDIO_1, 1, data);
 	LoadAudioDevice(DESKTOP_AUDIO_2, 2, data);
@@ -1584,9 +1602,6 @@ bool MainWindow::InitBasicConfigDefaults() {
 	return true;
 }
 
-extern bool EncoderAvailable(const char* encoder);
-extern bool update_nvenc_presets(ConfigFile& config);
-
 void MainWindow::InitBasicConfigDefaults2() {
 	bool oldEncDefaults = config_get_bool(App()->GlobalConfig(), "General", "Pre23Defaults");
 	bool useNV = EncoderAvailable("ffmpeg_nvenc") && !oldEncDefaults;
@@ -1665,6 +1680,10 @@ void MainWindow::InitOBSCallbacks() {
 				    MainWindow::SourceAudioDeactivated, this);
 	signalHandlers.emplace_back(obs_get_signal_handler(), "source_rename",
 				    MainWindow::SourceRenamed, this);
+}
+
+float MainWindow::GetDevicePixelRatio() {
+	return dpi;
 }
 
 void MainWindow::InitPrimitives() {
@@ -2027,4 +2046,64 @@ void MainWindow::ResizePreview(uint32_t cx, uint32_t cy) {
 
 	previewX += float(PREVIEW_EDGE_SIZE);
 	previewY += float(PREVIEW_EDGE_SIZE);
+}
+
+static inline QColor color_from_int(long long val) {
+	return QColor(val & 0xff, (val >> 8) & 0xff, (val >> 16) & 0xff, (val >> 24) & 0xff);
+}
+
+QColor MainWindow::GetSelectionColor() const {
+	if (config_get_bool(GetGlobalConfig(), "Accessibility", "OverrideColors")) {
+		return color_from_int(
+		  config_get_int(GetGlobalConfig(), "Accessibility", "SelectRed"));
+	} else {
+		return QColor::fromRgb(255, 0, 0);
+	}
+}
+
+QColor MainWindow::GetCropColor() const {
+	if (config_get_bool(GetGlobalConfig(), "Accessibility", "OverrideColors")) {
+		return color_from_int(
+		  config_get_int(GetGlobalConfig(), "Accessibility", "SelectGreen"));
+	} else {
+		return QColor::fromRgb(0, 255, 0);
+	}
+}
+
+QColor MainWindow::GetHoverColor() const {
+	if (config_get_bool(GetGlobalConfig(), "Accessibility", "OverrideColors")) {
+		return color_from_int(
+		  config_get_int(GetGlobalConfig(), "Accessibility", "SelectBlue"));
+	} else {
+		return QColor::fromRgb(0, 127, 255);
+	}
+}
+
+void MainWindow::SetDisplayAffinity(QWindow* window) {
+	if (!SetDisplayAffinitySupported())
+		return;
+
+	bool hideFromCapture =
+	  config_get_bool(App()->GlobalConfig(), "BasicWindow", "HideOBSWindowsFromCapture");
+
+	// Don't hide projectors, those are designed to be visible / captured
+	if (window->property("isOBSProjectorWindow") == true)
+		return;
+
+#ifdef _WIN32
+	HWND hwnd = (HWND)window->winId();
+
+	DWORD curAffinity;
+	if (GetWindowDisplayAffinity(hwnd, &curAffinity)) {
+		if (hideFromCapture && curAffinity != WDA_EXCLUDEFROMCAPTURE)
+			SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+		else if (!hideFromCapture && curAffinity != WDA_NONE)
+			SetWindowDisplayAffinity(hwnd, WDA_NONE);
+	}
+
+#else
+	// TODO: Implement for other platforms if possible. Don't forget to
+	// implement SetDisplayAffinitySupported too!
+	UNUSED_PARAMETER(hideFromCapture);
+#endif
 }
