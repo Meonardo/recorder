@@ -57,6 +57,11 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/audio-encoders.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/win-dll-blocklist.c
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-source-manager.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-source-manager.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-sources.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-sources.cpp
 )
 
 find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)
@@ -104,7 +109,7 @@ list(JOIN obs_module_list "|" SAFE_MODULES)
 target_compile_definitions(${PROJECT_NAME} PRIVATE "SAFE_MODULES=\"${SAFE_MODULES}\"")
 
 if(CMAKE_COMPILE_WARNING_AS_ERROR)
-  add_link_options(/WX)
+  add_link_options(/WX-)
 endif()
 
 # cmake-format: off

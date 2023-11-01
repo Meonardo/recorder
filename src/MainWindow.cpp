@@ -648,6 +648,20 @@ void MainWindow::OBSInit() {
 		QString failed_msg = QTStr("PluginsFailedToLoad.Text").arg(failed_plugins);
 		OBSMessageBox::warning(this, QTStr("PluginsFailedToLoad.Title"), failed_msg);
 	}
+
+	// init source manager
+	manager = new recorder::manager::OBSSourceManager();
+	manager->AddEventsSender(api);
+
+	{
+    auto screenItems = std::vector<std::shared_ptr<recorder::source::ScreenSceneItem>>();
+    manager->ListScreenItems(screenItems);
+    if (!screenItems.empty()) {
+      for (auto& item : screenItems) {
+        ui->comboBox->addItem(QString::fromStdString(item->Name()));
+      }
+    }
+  }
 }
 
 void MainWindow::OnFirstLoad() {
@@ -2388,9 +2402,7 @@ void MainWindow::InitDefaultTransitions() {
 		}
 	}
 
-  for (OBSSource& tr : transitions) {
-    SetTransition(tr);
-  }
+	for (OBSSource& tr : transitions) { SetTransition(tr); }
 }
 
 void MainWindow::InitTransition(obs_source_t* transition) {

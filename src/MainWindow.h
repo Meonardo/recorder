@@ -8,6 +8,7 @@
 
 #include "ui_MainWindow.h"
 #include "window-main.hpp"
+#include "obs-source-manager.h"
 
 #include <memory>
 #include <vector>
@@ -152,6 +153,9 @@ private:
 	std::vector<QListWidgetItem*> scenes;
 	std::vector<OBSSceneItem> sources;
 
+  // source manager
+  recorder::manager::OBSSourceManager* manager;
+  
 	// configures
 	float dpi = 1.0;
 	ConfigFile basicConfig;
