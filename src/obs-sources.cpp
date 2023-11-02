@@ -670,7 +670,7 @@ bool Scene::Attach(SceneItem* item, SceneItem::Category category) {
 	return true;
 }
 
-bool Scene::Detach(SceneItem* item, bool deleteIt) {
+bool Scene::Detach(SceneItem* item) {
 	if (item == nullptr)
 		return false;
 
@@ -678,10 +678,8 @@ bool Scene::Detach(SceneItem* item, bool deleteIt) {
 	  std::remove_if(items_.begin(), items_.end(),
 			 [item](const SceneItem* scene_item) { return scene_item == item; }),
 	  items_.end());
-	if (deleteIt) {
-		delete item;
-		item = nullptr;
-	}
+
+  delete item;
 	return true;
 }
 

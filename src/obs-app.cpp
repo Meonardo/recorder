@@ -1463,7 +1463,7 @@ bool OBSApp::notify(QObject* receiver, QEvent* e) {
 	    windowType == Qt::WindowType::Tool) {
 		MainWindow* main = reinterpret_cast<MainWindow*>(GetMainWindow());
 		if (main)
-			main->SetDisplayAffinity(window);
+			main->SetDisplayAffinity((HWND)window->winId());
 	}
 
 skip:

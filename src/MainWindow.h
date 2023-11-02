@@ -107,7 +107,7 @@ public:
 	QColor GetCropColor() const;
 	QColor GetHoverColor() const;
 
-	void SetDisplayAffinity(QWindow* window);
+	void SetDisplayAffinity(HWND hwnd);
 
 	/// public inlines
 	inline bool IsPreviewProgramMode() const {

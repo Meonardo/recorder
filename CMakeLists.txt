@@ -116,5 +116,5 @@ if(CMAKE_COMPILE_WARNING_AS_ERROR)
 endif()
 
 # cmake-format: off
-set_target_properties_obs(${PROJECT_NAME} PROPERTIES FOLDER frontend OUTPUT_NAME "$<IF:$<PLATFORM_ID:Windows>,recorder64,recorder>")
+set_target_properties_obs(${PROJECT_NAME} PROPERTIES FOLDER app OUTPUT_NAME "$<IF:$<PLATFORM_ID:Windows>,recorder64,recorder>")
 # cmake-format: on

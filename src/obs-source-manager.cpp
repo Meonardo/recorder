@@ -103,7 +103,7 @@ void OBSSourceManager::LoadSceneItemFromScene(std::string& sceneName) {
 				GetSettingValueWithName<bool>(settings, "cursor",
 							      item->show_cursor);
 
-			} else if (inputType == "gstreamer-source") {
+			} else if (inputType == "rtsp_source") {
 				// gst source(IPCamera)
 				std::string pipeline = "";
 				auto item = new source::IPCameraSceneItem(name, pipeline, false);
@@ -485,7 +485,7 @@ void OBSSourceManager::ListCameraItems(
 		size_t count_res = obs_property_list_item_count(p_res);
 
 		item->resolutions_.reserve(count_res);
-		int max_support_res = 0;
+    size_t max_support_res = 0;
 		for (size_t j = 0; j < count_res; j++) {
 			const char* res = obs_property_list_item_name(p_res, j);
 			blog(LOG_ERROR, "enum device(%s), resolution=%s", name, res);
@@ -499,7 +499,7 @@ void OBSSourceManager::ListCameraItems(
 
 		if (count_res > 0) {
 			// set default resolution value
-			item->SelectResolution(max_support_res);
+			item->SelectResolution((uint32_t)max_support_res);
 
 			// make a fake resolution selection
 			obs_data_set_string(data, resolution_p_name, item->selected_res_.c_str());

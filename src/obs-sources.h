@@ -300,7 +300,7 @@ public:
 	~Scene();
 
 	bool Attach(SceneItem* item, SceneItem::Category category);
-	bool Detach(SceneItem* item, bool deleteIt = false);
+	bool Detach(SceneItem* item);
 	bool ApplySceneItemSettingsUpdate(SceneItem* item);
 
 	int FindFirstPiPSceneItemIndex();

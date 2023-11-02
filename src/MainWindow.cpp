@@ -462,7 +462,41 @@ MainWindow::MainWindow(QWidget* parent) : OBSMainWindow(parent), ui(new Ui::Main
 	UpdatePreviewOverflowSettings();
 }
 
-MainWindow::~MainWindow() {}
+MainWindow::~MainWindow() {
+	/* clear out UI event queue */
+	QApplication::sendPostedEvents(nullptr);
+	QApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
+	service = nullptr;
+	outputHandler.reset();
+
+	obs_display_remove_draw_callback(ui->preview->GetDisplay(), MainWindow::RenderMain, this);
+
+	obs_enter_graphics();
+	gs_vertexbuffer_destroy(box);
+	gs_vertexbuffer_destroy(boxLeft);
+	gs_vertexbuffer_destroy(boxTop);
+	gs_vertexbuffer_destroy(boxRight);
+	gs_vertexbuffer_destroy(boxBottom);
+	gs_vertexbuffer_destroy(circle);
+	gs_vertexbuffer_destroy(actionSafeMargin);
+	gs_vertexbuffer_destroy(graphicsSafeMargin);
+	gs_vertexbuffer_destroy(fourByThreeSafeMargin);
+	gs_vertexbuffer_destroy(leftLine);
+	gs_vertexbuffer_destroy(topLine);
+	gs_vertexbuffer_destroy(rightLine);
+	obs_leave_graphics();
+
+	QApplication::sendPostedEvents(nullptr);
+
+	config_set_int(App()->GlobalConfig(), "General", "LastVersion", LIBOBS_API_VER);
+
+	config_set_bool(App()->GlobalConfig(), "BasicWindow", "PreviewEnabled", previewEnabled);
+	config_save_safe(App()->GlobalConfig(), "tmp", nullptr);
+
+	delete manager;
+	delete ui;
+}
 
 void MainWindow::OBSInit() {
 	ProfileScope("OBSBasic::OBSInit");
@@ -665,6 +699,9 @@ void MainWindow::OBSInit() {
 
 	// register ui events
 	ConfigureUI();
+
+	// hide from screen capture
+	SetDisplayAffinity((HWND)this->winId());
 }
 
 void MainWindow::ConfigureUI() {
@@ -691,7 +728,7 @@ void MainWindow::ConfigureUI() {
 					     recorder::source::SceneItem::Category::kMain)) {
 			screen->UpdateScale({0.5, 0.5});
 			manager->ApplySceneItemSettingsUpdate(screen);
-
+		} else {
 			delete screen;
 		}
 	});
@@ -702,13 +739,13 @@ void MainWindow::ConfigureUI() {
 		if (!source)
 			return;
 
-		for (auto window : duplicators) {
+		/*for (auto window : duplicators) {
 			std::string sourceName = window->SourceName();
 			if (sourceName == name) {
 				window->show();
 				return;
 			}
-		}
+		}*/
 		auto window = new SourceDuplicatorWindow(source);
 		window->show();
 		duplicators.push_back(window);
@@ -716,22 +753,26 @@ void MainWindow::ConfigureUI() {
 
 	connect(ui->screenRemoveButton, &QPushButton::clicked, this, [this]() {
 		std::string name(ui->comboBox->currentText().toStdString());
-		OBSSource source = obs_get_source_by_name(name.c_str());
+		OBSSourceAutoRelease source = obs_get_source_by_name(name.c_str());
 		if (!source)
 			return;
 
+		// remove copy
 		auto ret = std::remove_if(duplicators.begin(), duplicators.end(),
 					  [name](SourceDuplicatorWindow* d) {
 						  return d->SourceName() == name;
 					  });
-		if (ret == duplicators.end())
-			return;
+		if (ret != duplicators.end()) {
+			auto removed = *ret;
+			removed->hide();
+			removed->deleteLater();
 
-		auto removed = *ret;
-		removed->hide();
-		removed->deleteLater();
-
-		duplicators.erase(ret, duplicators.end());
+			duplicators.erase(ret, duplicators.end());
+		} else {
+			// remove source
+      if (manager->RemoveSceneItemByName(name))
+        SaveProject();
+		}
 	});
 
 	connect(ui->rtspAddButton, &QPushButton::clicked, this, [this]() {
@@ -740,10 +781,8 @@ void MainWindow::ConfigureUI() {
 		auto camera = new recorder::source::IPCameraSceneItem(url_string, url_string, true);
 
 		if (manager->AttachSceneItem(camera, recorder::source::SceneItem::Category::kPiP)) {
-			camera->UpdateScale({0.3, 0.3});
+			camera->UpdateScale({0.3f, 0.3f});
 			manager->ApplySceneItemSettingsUpdate(camera);
-
-			delete camera;
 		}
 	});
 
@@ -753,13 +792,13 @@ void MainWindow::ConfigureUI() {
 		if (!source)
 			return;
 
-		for (auto window : duplicators) {
+		/*for (auto window : duplicators) {
 			std::string sourceName = window->SourceName();
 			if (sourceName == name) {
 				window->show();
 				return;
 			}
-		}
+		}*/
 		auto window = new SourceDuplicatorWindow(source);
 		window->show();
 		duplicators.push_back(window);
@@ -767,22 +806,26 @@ void MainWindow::ConfigureUI() {
 
 	connect(ui->rtspRemoveButton, &QPushButton::clicked, this, [this]() {
 		std::string name(ui->rtspTextEdit->text().toStdString());
-		OBSSource source = obs_get_source_by_name(name.c_str());
+		OBSSourceAutoRelease source = obs_get_source_by_name(name.c_str());
 		if (!source)
 			return;
 
+		// remove copy
 		auto ret = std::remove_if(duplicators.begin(), duplicators.end(),
 					  [name](SourceDuplicatorWindow* d) {
 						  return d->SourceName() == name;
 					  });
-		if (ret == duplicators.end())
-			return;
+		if (ret != duplicators.end()) {
+			auto removed = *ret;
+			removed->hide();
+			removed->deleteLater();
 
-		auto removed = *ret;
-		removed->hide();
-		removed->deleteLater();
-
-		duplicators.erase(ret, duplicators.end());
+			duplicators.erase(ret, duplicators.end());
+		} else {
+			// remove source
+      if (manager->RemoveSceneItemByName(name))
+        SaveProject();
+		}
 	});
 
 	connect(ui->startRecordingButton, &QPushButton::clicked, this,
@@ -1643,15 +1686,6 @@ bool MainWindow::InitBasicConfigDefaults() {
 	}
 
 	/* ----------------------------------------------------- */
-	/* set twitch chat extensions to "both" if prev version  */
-	/* is under 24.1                                         */
-	if (config_get_bool(GetGlobalConfig(), "General", "Pre24.1Defaults") &&
-	    !config_has_user_value(basicConfig, "Twitch", "AddonChoice")) {
-		config_set_int(basicConfig, "Twitch", "AddonChoice", 3);
-		changed = true;
-	}
-
-	/* ----------------------------------------------------- */
 	/* move bitrate enforcement setting to new value         */
 	if (config_has_user_value(basicConfig, "SimpleOutput", "EnforceBitrate") &&
 	    !config_has_user_value(basicConfig, "Stream1", "IgnoreRecommended") &&
@@ -1842,6 +1876,8 @@ bool MainWindow::InitBasicConfigDefaults() {
 	config_set_default_string(basicConfig, "Audio", "ChannelSetup", "Stereo");
 	config_set_default_double(basicConfig, "Audio", "MeterDecayRate", 23.53);
 	config_set_default_uint(basicConfig, "Audio", "PeakMeterType", 0);
+
+	config_set_bool(App()->GlobalConfig(), "BasicWindow", "HideOBSWindowsFromCapture", true);
 
 	return true;
 }
@@ -2326,20 +2362,14 @@ QColor MainWindow::GetHoverColor() const {
 	}
 }
 
-void MainWindow::SetDisplayAffinity(QWindow* window) {
+void MainWindow::SetDisplayAffinity(HWND hwnd) {
 	if (!SetDisplayAffinitySupported())
 		return;
 
 	bool hideFromCapture =
 	  config_get_bool(App()->GlobalConfig(), "BasicWindow", "HideOBSWindowsFromCapture");
 
-	// Don't hide projectors, those are designed to be visible / captured
-	if (window->property("isOBSProjectorWindow") == true)
-		return;
-
 #ifdef _WIN32
-	HWND hwnd = (HWND)window->winId();
-
 	DWORD curAffinity;
 	if (GetWindowDisplayAffinity(hwnd, &curAffinity)) {
 		if (hideFromCapture && curAffinity != WDA_EXCLUDEFROMCAPTURE)
