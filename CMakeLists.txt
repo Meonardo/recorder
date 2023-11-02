@@ -35,6 +35,9 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.ui
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/SourceDuplicatorWindow.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/SourceDuplicatorWindow.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/SourceDuplicatorWindow.ui
 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-preview.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-preview.hpp
