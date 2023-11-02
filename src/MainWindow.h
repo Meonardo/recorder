@@ -79,12 +79,9 @@ public:
 	OBSSource GetProgramSource();
 	OBSScene GetCurrentScene();
 
-	void ResetAudioDevice(const char* sourceId, const char* deviceId, const char* deviceDesc,
-			      int channel);
-
-	void SaveProjectDeferred();
-	void SaveProject();
-
+  void ResetAudioDevice(const char* sourceId, const char* deviceId, const char* deviceDesc,
+    int channel);
+	
 	float GetDevicePixelRatio();
 	const char* GetCurrentOutputPath();
 
@@ -126,7 +123,20 @@ protected:
   virtual void changeEvent(QEvent* event) override;
 
 public slots:
+  void SaveProject();
+  void SaveProjectDeferred();
+  void DeferSaveBegin();
+  void DeferSaveEnd();
 	void SetCurrentScene(OBSSource scene, bool force = false);
+
+  // recording
+  void StartRecording();
+  void StopRecording();
+
+  void RecordingStart();
+  void RecordStopping();
+  void RecordingStop(int code, QString last_error);
+  void RecordingFileChanged(QString lastRecordingPath);
 
 private slots:
 	void on_actionNewProfile_triggered();
@@ -168,6 +178,10 @@ private:
 	bool clearingFailed = false;
 	bool drawSafeAreas = false;
 	bool drawSpacingHelpers = true;
+  int disableOutputsRef = 0;
+
+  bool streamingStopping = false;
+  bool recordingStopping = false;
 
 	// preview
 	gs_vertbuffer_t* box = nullptr;
@@ -233,9 +247,6 @@ private:
 	void LoadData(obs_data_t* data, const char* file);
 	void Load(const char* file);
 
-	void DeferSaveBegin();
-	void DeferSaveEnd();
-
 	void LoadSceneListOrder(obs_data_array_t* array);
 	obs_data_array_t* SaveSceneListOrder();
 	void LogScenes();
@@ -278,4 +289,10 @@ private:
   void InitTransition(obs_source_t* transition);
   void SetTransition(OBSSource transition);
   void TransitionToScene(OBSSource source);
+
+  // recording
+  bool OutputPathValid();
+  void AutoRemux(QString input, bool no_show = false);
+
+  void UpdatePause(bool activate = true);
 };

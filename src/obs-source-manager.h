@@ -64,6 +64,8 @@ public:
 
 	void AddDefaultAudioSource();
 
+  bool SetCurrentRecordingFolder(const char* path);
+
 private:
 	void LoadGroups(std::vector<obs_source_t*>& groups);
 	void LoadSceneItemFromScene(std::string& sceneName);

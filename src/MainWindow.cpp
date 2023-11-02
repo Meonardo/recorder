@@ -27,6 +27,7 @@
 #include <util/platform.h>
 #include <util/profiler.hpp>
 #include <util/dstr.hpp>
+#include <libavutil/avutil.h>
 
 #include "display-helpers.hpp"
 #include "qt-wrappers.hpp"
@@ -44,6 +45,13 @@
 #define UNKNOWN_ERROR                                                  \
 	"Failed to initialize video.  Your GPU may not be supported, " \
 	"or your graphics drivers may need to be updated."
+
+#define RECORDING_START "==== Recording Start ==============================================="
+#define RECORDING_STOP "==== Recording Stop ================================================"
+#define REPLAY_BUFFER_START "==== Replay Buffer Start ==========================================="
+#define REPLAY_BUFFER_STOP "==== Replay Buffer Stop ============================================"
+#define STREAMING_START "==== Streaming Start ==============================================="
+#define STREAMING_STOP "==== Streaming Stop ================================================"
 
 #if OBS_RELEASE_CANDIDATE == 0 && OBS_BETA == 0
 #define DEFAULT_CONTAINER "mkv"
@@ -654,14 +662,66 @@ void MainWindow::OBSInit() {
 	manager->AddEventsSender(api);
 
 	{
-    auto screenItems = std::vector<std::shared_ptr<recorder::source::ScreenSceneItem>>();
-    manager->ListScreenItems(screenItems);
-    if (!screenItems.empty()) {
-      for (auto& item : screenItems) {
-        ui->comboBox->addItem(QString::fromStdString(item->Name()));
-      }
-    }
-  }
+		auto screenItems =
+		  std::vector<std::shared_ptr<recorder::source::ScreenSceneItem>>();
+		manager->ListScreenItems(screenItems);
+		if (!screenItems.empty()) {
+			for (auto& item : screenItems) {
+				ui->comboBox->addItem(QString::fromStdString(item->Name()));
+			}
+		}
+	}
+
+	connect(ui->screenAddButton, &QPushButton::clicked, this, [this]() {
+		auto screenItems =
+		  std::vector<std::shared_ptr<recorder::source::ScreenSceneItem>>();
+		manager->ListScreenItems(screenItems);
+
+		auto index = ui->comboBox->currentIndex();
+		auto screen = new recorder::source::ScreenSceneItem(*screenItems[index].get());
+
+		if (manager->AttachSceneItem(screen,
+					     recorder::source::SceneItem::Category::kMain)) {
+			screen->UpdateScale({0.5, 0.5});
+			manager->ApplySceneItemSettingsUpdate(screen);
+
+			delete screen;
+		}
+	});
+
+	connect(ui->rtspAddButton, &QPushButton::clicked, this, [this]() {
+		auto url = ui->rtspTextEdit->text();
+		std::string url_string(url.toStdString());
+		auto camera = new recorder::source::IPCameraSceneItem(url_string, url_string, true);
+
+		if (manager->AttachSceneItem(camera, recorder::source::SceneItem::Category::kPiP)) {
+			camera->UpdateScale({0.3, 0.3});
+			manager->ApplySceneItemSettingsUpdate(camera);
+
+			delete camera;
+		}
+	});
+
+	connect(ui->startRecordingButton, &QPushButton::clicked, this,
+		[this]() { obs_frontend_recording_start(); });
+	connect(ui->stopRecordingButton, &QPushButton::clicked, this, [this]() {
+		if (!obs_frontend_recording_active())
+			return;
+
+		obs_frontend_recording_stop();
+	});
+	connect(ui->startStreamingButton, &QPushButton::clicked, this, [this]() {
+		auto serverAddress = ui->rtspTextEdit->text();
+		if (serverAddress.isEmpty())
+			return;
+		std::string address(serverAddress.toStdString());
+		std::string username("");
+		std::string passwd("");
+		manager->SetStreamAddress(address, username, passwd);
+		manager->StartStreaming();
+	});
+	connect(ui->stopStreamingButton, &QPushButton::clicked, this,
+		[this]() { manager->StopStreaming(); });
 }
 
 void MainWindow::OnFirstLoad() {
@@ -2450,4 +2510,238 @@ void MainWindow::TransitionToScene(OBSSource source) {
 	obs_transition_set(transition, source);
 	if (api)
 		api->on_event(OBS_FRONTEND_EVENT_SCENE_CHANGED);
+}
+
+void MainWindow::StartRecording() {
+	if (outputHandler->RecordingActive())
+		return;
+	if (disableOutputsRef)
+		return;
+
+	if (!OutputPathValid()) {
+		blog(LOG_ERROR, "Recording stopped because of bad output path");
+
+		ui->startRecordingButton->setEnabled(true);
+		ui->stopRecordingButton->setEnabled(false);
+		return;
+	}
+
+	/*if (LowDiskSpace()) {
+		DiskSpaceMessage();
+		ui->recordButton->setChecked(false);
+		return;
+	}*/
+
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_RECORDING_STARTING);
+
+	SaveProject();
+
+	if (!outputHandler->StartRecording()) {
+		ui->startRecordingButton->setEnabled(true);
+		ui->stopRecordingButton->setEnabled(false);
+	}
+}
+
+void MainWindow::RecordStopping() {
+	recordingStopping = true;
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_RECORDING_STOPPING);
+}
+
+void MainWindow::StopRecording() {
+	SaveProject();
+
+	if (outputHandler->RecordingActive())
+		outputHandler->StopRecording(recordingStopping);
+}
+
+void MainWindow::RecordingStart() {
+	ui->stopRecordingButton->setEnabled(true);
+	ui->startRecordingButton->setEnabled(false);
+
+	recordingStopping = false;
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_RECORDING_STARTED);
+
+	/*if (!diskFullTimer->isActive())
+		diskFullTimer->start(1000);*/
+
+	blog(LOG_INFO, RECORDING_START);
+}
+
+void MainWindow::RecordingStop(int code, QString last_error) {
+	ui->stopRecordingButton->setEnabled(false);
+	ui->startRecordingButton->setEnabled(true);
+
+	blog(LOG_INFO, RECORDING_STOP);
+
+	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
+		blog(LOG_ERROR, "unsupported");
+	} else if (code == OBS_OUTPUT_ENCODE_ERROR && isVisible()) {
+		blog(LOG_ERROR, "encode error");
+	} else if (code == OBS_OUTPUT_NO_SPACE && isVisible()) {
+		blog(LOG_ERROR, "disk is full");
+	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
+
+		const char* errorDescription;
+		DStr errorMessage;
+		bool use_last_error = true;
+
+		errorDescription = Str("Output.RecordError.Msg");
+
+		if (use_last_error && !last_error.isEmpty())
+			dstr_printf(errorMessage, "%s\n\n%s", errorDescription,
+				    QT_TO_UTF8(last_error));
+		else
+			dstr_copy(errorMessage, errorDescription);
+
+		blog(LOG_ERROR, errorMessage);
+
+	} else if (code == OBS_OUTPUT_UNSUPPORTED && !isVisible()) {
+		blog(LOG_ERROR, "unsupported");
+	} else if (code == OBS_OUTPUT_NO_SPACE && !isVisible()) {
+		blog(LOG_ERROR, "disk is full");
+	} else if (code != OBS_OUTPUT_SUCCESS && !isVisible()) {
+
+	} else if (code == OBS_OUTPUT_SUCCESS) {
+		if (outputHandler) {
+			std::string path = outputHandler->lastRecordingPath;
+			blog(LOG_INFO, "save to disk at: %s", path.c_str());
+		}
+	}
+
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_RECORDING_STOPPED);
+
+	/*if (diskFullTimer->isActive())
+		diskFullTimer->stop();*/
+
+	AutoRemux(outputHandler->lastRecordingPath.c_str());
+
+	UpdatePause(false);
+}
+
+void MainWindow::RecordingFileChanged(QString lastRecordingPath) {
+	QString str = QTStr("Basic.StatusBar.RecordingSavedTo");
+	blog(LOG_ERROR, "save file path changed");
+
+	AutoRemux(lastRecordingPath, true);
+}
+
+bool MainWindow::OutputPathValid() {
+	const char* mode = config_get_string(Config(), "Output", "Mode");
+	if (strcmp(mode, "Advanced") == 0) {
+		const char* advanced_mode = config_get_string(Config(), "AdvOut", "RecType");
+		if (strcmp(advanced_mode, "FFmpeg") == 0) {
+			bool is_local = config_get_bool(Config(), "AdvOut", "FFOutputToFile");
+			if (!is_local)
+				return true;
+		}
+	}
+
+	const char* path = GetCurrentOutputPath();
+	return path && *path && QDir(path).exists();
+}
+
+void MainWindow::AutoRemux(QString input, bool no_show) {
+	auto config = Config();
+
+	bool autoRemux = config_get_bool(config, "Video", "AutoRemux");
+
+	if (!autoRemux)
+		return;
+
+	bool isSimpleMode = false;
+
+	const char* mode = config_get_string(config, "Output", "Mode");
+	if (!mode) {
+		isSimpleMode = true;
+	} else {
+		isSimpleMode = strcmp(mode, "Simple") == 0;
+	}
+
+	if (!isSimpleMode) {
+		const char* recType = config_get_string(config, "AdvOut", "RecType");
+
+		bool ffmpegOutput = astrcmpi(recType, "FFmpeg") == 0;
+
+		if (ffmpegOutput)
+			return;
+	}
+
+	if (input.isEmpty())
+		return;
+
+	QFileInfo fi(input);
+	QString suffix = fi.suffix();
+
+	/* do not remux if lossless */
+	if (suffix.compare("avi", Qt::CaseInsensitive) == 0) {
+		return;
+	}
+
+	QString path = fi.path();
+
+	QString output = input;
+	output.resize(output.size() - suffix.size());
+
+	const obs_encoder_t* videoEncoder = obs_output_get_video_encoder(outputHandler->fileOutput);
+	const obs_encoder_t* audioEncoder =
+	  obs_output_get_audio_encoder(outputHandler->fileOutput, 0);
+	const char* vCodecName = obs_encoder_get_codec(videoEncoder);
+	const char* aCodecName = obs_encoder_get_codec(audioEncoder);
+	const char* format =
+	  config_get_string(config, isSimpleMode ? "SimpleOutput" : "AdvOut", "RecFormat2");
+
+	bool audio_is_pcm = strncmp(aCodecName, "pcm", 3) == 0;
+
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(60, 5, 100)
+	/* FFmpeg <= 6.0 cannot remux AV1+PCM into any supported format. */
+	if (audio_is_pcm && strcmp(vCodecName, "av1") == 0)
+		return;
+#endif
+
+	/* Retain original container for fMP4/fMOV */
+	if (strncmp(format, "fragmented", 10) == 0) {
+		output += "remuxed." + suffix;
+	} else if (strcmp(vCodecName, "prores") == 0) {
+		output += "mov";
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(60, 5, 100)
+	} else if (audio_is_pcm) {
+		output += "mov";
+#endif
+	} else {
+		output += "mp4";
+	}
+
+	/*OBSRemux* remux = new OBSRemux(QT_TO_UTF8(path), this, true);
+	if (!no_show)
+		remux->show();
+	remux->AutoRemux(input, output);*/
+}
+
+void MainWindow::UpdatePause(bool activate) {
+	if (!activate || !outputHandler || !outputHandler->RecordingActive()) {
+		return;
+	}
+
+	const char* mode = config_get_string(basicConfig, "Output", "Mode");
+	bool adv = astrcmpi(mode, "Advanced") == 0;
+	bool shared;
+
+	if (adv) {
+		const char* recType = config_get_string(basicConfig, "AdvOut", "RecType");
+
+		if (astrcmpi(recType, "FFmpeg") == 0) {
+			shared = config_get_bool(basicConfig, "AdvOut", "FFOutputToFile");
+		} else {
+			const char* recordEncoder =
+			  config_get_string(basicConfig, "AdvOut", "RecEncoder");
+			shared = astrcmpi(recordEncoder, "none") == 0;
+		}
+	} else {
+		const char* quality = config_get_string(basicConfig, "SimpleOutput", "RecQuality");
+		shared = strcmp(quality, "Stream") == 0;
+	}
 }

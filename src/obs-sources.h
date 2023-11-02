@@ -112,6 +112,8 @@ public:
 	int capture_method;
 	// show cursor(default is true)
 	bool show_cursor;
+  // id
+  std::string id;
 
 protected:
 	virtual Scene* scene() const override;

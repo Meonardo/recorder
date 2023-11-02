@@ -184,7 +184,7 @@ void ScreenSceneItem::MarkUpdateCompleted() {
 
 obs_data_t* ScreenSceneItem::Properties() const {
 	obs_data_t* data = obs_data_create();
-	obs_data_set_int(data, "monitor", index);
+	obs_data_set_string(data, "monitor_id", id.c_str());
 
 	if (EncoderAvailable("ffmpeg_nvenc")) {
 		obs_data_set_int(data, "method", 2);
@@ -234,7 +234,7 @@ void IPCameraSceneItem::SetName(std::string& name) {
 }
 
 std::string IPCameraSceneItem::Kind() const {
-	return "gstreamer-source";
+	return "rtsp_source";
 }
 
 SceneItem::Type IPCameraSceneItem::type() const {
@@ -325,20 +325,13 @@ void IPCameraSceneItem::MarkUpdateCompleted() {
 
 obs_data_t* IPCameraSceneItem::Properties() const {
 	obs_data_t* data = obs_data_create();
-	const size_t count = 512;
-	char pipeline[count];
-	snprintf(pipeline, count, "uridecodebin uri=%s name=bin latency=50 ! queue ! video.",
-		 url_.c_str());
 
-	obs_data_set_string(data, "pipeline", pipeline);
-	obs_data_set_bool(data, "sync_appsink_audio", false);
+	obs_data_set_string(data, "url", url_.c_str());
+	obs_data_set_int(data, "restart_timeout", 20);
 	obs_data_set_bool(data, "sync_appsink_video", false);
-	obs_data_set_bool(data, "disable_async_appsink_video", false);
-	obs_data_set_bool(data, "disable_async_appsink_audio", false);
-	obs_data_set_bool(data, "block_video", true);
-	obs_data_set_bool(data, "restart_on_error", true);
-	obs_data_set_bool(data, "use_timestamps_audio", false);
-	obs_data_set_bool(data, "use_timestamps_video", false);
+	obs_data_set_bool(data, "block_video", false);
+  obs_data_set_bool(data, "block_audio", true);
+	obs_data_set_bool(data, "hw_decode", false);
 	obs_data_set_bool(data, "stop_on_hide", stop_on_hide_);
 
 	return data;

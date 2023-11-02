@@ -1,6 +1,7 @@
 #include "obs-source-manager.h"
 #include "obs-app.hpp"
 #include "qthread.h"
+#include "qdir.h"
 
 namespace recorder::manager {
 OBSSourceManager::OBSSourceManager() : main_scene_(nullptr), api_(nullptr) {
@@ -407,12 +408,12 @@ void OBSSourceManager::ListScreenItems(
 
 	for (size_t i = 0; i < count; i++) {
 		const char* name = obs_property_list_item_name(p, i);
-		int id = (int)obs_property_list_item_int(p, i);
-		blog(LOG_INFO, "enum monitor: %s, id=%d", name, id);
+		auto id = obs_property_list_item_string(p, i);
+		blog(LOG_INFO, "enum monitor: %s, id=%s", name, id);
 
     std::string name_std_string(name);
 		auto item = std::make_shared<source::ScreenSceneItem>(name_std_string);
-		item->index = id;
+		item->id = id;
 		items.push_back(item);
 
 		// eg: 3840x2160 @ 2560,-550
@@ -905,6 +906,20 @@ bool OBSSourceManager::StopStreaming() {
 	obs_frontend_streaming_stop();
 
 	return true;
+}
+
+bool OBSSourceManager::SetCurrentRecordingFolder(const char* path) {
+  QDir dir(path);
+  if (!dir.exists()) {
+    dir.mkpath(".");
+  }
+
+  config_t* profile = obs_frontend_get_profile_config();
+  config_set_string(profile, "AdvOut", "RecFilePath", path);
+  config_set_string(profile, "SimpleOutput", "FilePath", path);
+
+  config_save(profile);
+  return true;
 }
 
 } //namespace recorder::manager
