@@ -19,6 +19,7 @@
 #include <ctime>
 #include <functional>
 #include <sstream>
+#include <algorithm>
 
 #include <Windows.h>
 
@@ -34,6 +35,7 @@
 #include "platform.hpp"
 #include "obs-app.hpp"
 #include "window-basic-main-outputs.hpp"
+#include "SourceDuplicatorWindow.h"
 
 #define STARTUP_SEPARATOR "==== Startup complete ==============================================="
 #define SHUTDOWN_SEPARATOR "==== Shutting down =================================================="
@@ -661,7 +663,12 @@ void MainWindow::OBSInit() {
 	manager = new recorder::manager::OBSSourceManager();
 	manager->AddEventsSender(api);
 
-	{
+	// register ui events
+	ConfigureUI();
+}
+
+void MainWindow::ConfigureUI() {
+	{ // load screen list
 		auto screenItems =
 		  std::vector<std::shared_ptr<recorder::source::ScreenSceneItem>>();
 		manager->ListScreenItems(screenItems);
@@ -689,6 +696,44 @@ void MainWindow::OBSInit() {
 		}
 	});
 
+	connect(ui->screenCopyButton, &QPushButton::clicked, this, [this]() {
+		std::string name(ui->comboBox->currentText().toStdString());
+		OBSSource source = obs_get_source_by_name(name.c_str());
+		if (!source)
+			return;
+
+		for (auto window : duplicators) {
+			std::string sourceName = window->SourceName();
+			if (sourceName == name) {
+				window->show();
+				return;
+			}
+		}
+		auto window = new SourceDuplicatorWindow(source);
+		window->show();
+		duplicators.push_back(window);
+	});
+
+	connect(ui->screenRemoveButton, &QPushButton::clicked, this, [this]() {
+		std::string name(ui->comboBox->currentText().toStdString());
+		OBSSource source = obs_get_source_by_name(name.c_str());
+		if (!source)
+			return;
+
+		auto ret = std::remove_if(duplicators.begin(), duplicators.end(),
+					  [name](SourceDuplicatorWindow* d) {
+						  return d->SourceName() == name;
+					  });
+		if (ret == duplicators.end())
+			return;
+
+		auto removed = *ret;
+		removed->hide();
+		removed->deleteLater();
+
+		duplicators.erase(ret, duplicators.end());
+	});
+
 	connect(ui->rtspAddButton, &QPushButton::clicked, this, [this]() {
 		auto url = ui->rtspTextEdit->text();
 		std::string url_string(url.toStdString());
@@ -700,6 +745,44 @@ void MainWindow::OBSInit() {
 
 			delete camera;
 		}
+	});
+
+	connect(ui->rtspCopyButton, &QPushButton::clicked, this, [this]() {
+		std::string name(ui->rtspTextEdit->text().toStdString());
+		OBSSource source = obs_get_source_by_name(name.c_str());
+		if (!source)
+			return;
+
+		for (auto window : duplicators) {
+			std::string sourceName = window->SourceName();
+			if (sourceName == name) {
+				window->show();
+				return;
+			}
+		}
+		auto window = new SourceDuplicatorWindow(source);
+		window->show();
+		duplicators.push_back(window);
+	});
+
+	connect(ui->rtspRemoveButton, &QPushButton::clicked, this, [this]() {
+		std::string name(ui->rtspTextEdit->text().toStdString());
+		OBSSource source = obs_get_source_by_name(name.c_str());
+		if (!source)
+			return;
+
+		auto ret = std::remove_if(duplicators.begin(), duplicators.end(),
+					  [name](SourceDuplicatorWindow* d) {
+						  return d->SourceName() == name;
+					  });
+		if (ret == duplicators.end())
+			return;
+
+		auto removed = *ret;
+		removed->hide();
+		removed->deleteLater();
+
+		duplicators.erase(ret, duplicators.end());
 	});
 
 	connect(ui->startRecordingButton, &QPushButton::clicked, this,

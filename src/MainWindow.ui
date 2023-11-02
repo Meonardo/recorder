@@ -51,7 +51,7 @@
          </size>
         </property>
         <property name="text">
-         <string>rtsp://192.168.99.171/1</string>
+         <string>rtsp://192.168.99.172/1</string>
         </property>
        </widget>
       </item>
@@ -216,6 +216,9 @@
           <width>0</width>
           <height>30</height>
          </size>
+        </property>
+        <property name="text">
+         <string>rtmp://live.amdox.com.cn/blackboard/sss?auth_key=1698904747-0-0-dd707a0c2bd6419172f565d5ac0ceedc</string>
         </property>
        </widget>
       </item>

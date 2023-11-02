@@ -43,6 +43,7 @@
 #define PREVIEW_EDGE_SIZE 10
 
 struct BasicOutputHandler;
+class SourceDuplicatorWindow;
 
 enum class QtDataRole {
 	OBSRef = Qt::UserRole,
@@ -117,6 +118,7 @@ public:
 		return OBSSource(obs_scene_get_source(curScene));
 	}
 	inline bool SavingDisabled() const { return disableSaving; }
+
 protected:
   virtual bool nativeEvent(const QByteArray& eventType, void* message,
     qintptr* result) override;
@@ -162,6 +164,7 @@ private:
 	std::vector<OBSSignal> signalHandlers;
 	std::vector<QListWidgetItem*> scenes;
 	std::vector<OBSSceneItem> sources;
+  std::vector<SourceDuplicatorWindow*> duplicators;
 
   // source manager
   recorder::manager::OBSSourceManager* manager;
@@ -283,6 +286,8 @@ private:
 
 	void SetCurrentScene(obs_scene_t* scene, bool force = false);
 	void ResizePreview(uint32_t cx, uint32_t cy);
+
+  void ConfigureUI();
 
   // transitions
   void InitDefaultTransitions();
