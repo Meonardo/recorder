@@ -134,11 +134,18 @@ public slots:
   // recording
   void StartRecording();
   void StopRecording();
-
   void RecordingStart();
   void RecordStopping();
   void RecordingStop(int code, QString last_error);
   void RecordingFileChanged(QString lastRecordingPath);
+
+  // streaming
+  void StartStreaming();
+  void StopStreaming();
+  void ForceStopStreaming();
+  void StreamingStart();
+  void StreamStopping();
+  void StreamingStop(int errorcode, QString last_error);
 
 private slots:
 	void on_actionNewProfile_triggered();

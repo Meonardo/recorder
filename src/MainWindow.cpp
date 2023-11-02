@@ -794,7 +794,7 @@ void MainWindow::ConfigureUI() {
 		obs_frontend_recording_stop();
 	});
 	connect(ui->startStreamingButton, &QPushButton::clicked, this, [this]() {
-		auto serverAddress = ui->rtspTextEdit->text();
+		auto serverAddress = ui->streamAddressTextEdit->text();
 		if (serverAddress.isEmpty())
 			return;
 		std::string address(serverAddress.toStdString());
@@ -2826,5 +2826,135 @@ void MainWindow::UpdatePause(bool activate) {
 	} else {
 		const char* quality = config_get_string(basicConfig, "SimpleOutput", "RecQuality");
 		shared = strcmp(quality, "Stream") == 0;
+	}
+}
+
+void MainWindow::StartStreaming() {
+	if (outputHandler->StreamingActive())
+		return;
+	if (disableOutputsRef)
+		return;
+
+	if (!outputHandler->SetupStreaming(service)) {
+		blog(LOG_ERROR, "start streaming failed");
+		return;
+	}
+
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_STREAMING_STARTING);
+
+	SaveProject();
+
+	ui->startStreamingButton->setEnabled(false);
+	ui->stopStreamingButton->setEnabled(true);
+
+	if (!outputHandler->StartStreaming(service)) {
+		blog(LOG_ERROR, "start streaming failed");
+		return;
+	}
+
+	bool recordWhenStreaming =
+	  config_get_bool(GetGlobalConfig(), "BasicWindow", "RecordWhenStreaming");
+	if (recordWhenStreaming)
+		StartRecording();
+}
+
+void MainWindow::StopStreaming() {
+	SaveProject();
+
+	if (outputHandler->StreamingActive())
+		outputHandler->StopStreaming(streamingStopping);
+
+	bool recordWhenStreaming =
+	  config_get_bool(GetGlobalConfig(), "BasicWindow", "RecordWhenStreaming");
+	bool keepRecordingWhenStreamStops =
+	  config_get_bool(GetGlobalConfig(), "BasicWindow", "KeepRecordingWhenStreamStops");
+	if (recordWhenStreaming && !keepRecordingWhenStreamStops)
+		StopRecording();
+}
+
+void MainWindow::ForceStopStreaming() {
+	SaveProject();
+
+	if (outputHandler->StreamingActive())
+		outputHandler->StopStreaming(true);
+
+	bool recordWhenStreaming =
+	  config_get_bool(GetGlobalConfig(), "BasicWindow", "RecordWhenStreaming");
+	bool keepRecordingWhenStreamStops =
+	  config_get_bool(GetGlobalConfig(), "BasicWindow", "KeepRecordingWhenStreamStops");
+	if (recordWhenStreaming && !keepRecordingWhenStreamStops)
+		StopRecording();
+}
+
+void MainWindow::StreamingStart() {
+	ui->startStreamingButton->setEnabled(false);
+	ui->stopStreamingButton->setEnabled(true);
+
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_STREAMING_STARTED);
+
+	blog(LOG_INFO, STREAMING_START);
+}
+
+void MainWindow::StreamStopping() {
+	streamingStopping = true;
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_STREAMING_STOPPING);
+}
+
+void MainWindow::StreamingStop(int code, QString last_error) {
+	const char* errorDescription = "";
+	DStr errorMessage;
+	bool use_last_error = false;
+	bool encode_error = false;
+
+	switch (code) {
+	case OBS_OUTPUT_BAD_PATH: errorDescription = Str("Output.ConnectFail.BadPath"); break;
+
+	case OBS_OUTPUT_CONNECT_FAILED:
+		use_last_error = true;
+		errorDescription = Str("Output.ConnectFail.ConnectFailed");
+		break;
+
+	case OBS_OUTPUT_INVALID_STREAM:
+		errorDescription = Str("Output.ConnectFail.InvalidStream");
+		break;
+
+	case OBS_OUTPUT_ENCODE_ERROR: encode_error = true; break;
+
+	case OBS_OUTPUT_HDR_DISABLED:
+		errorDescription = Str("Output.ConnectFail.HdrDisabled");
+		break;
+
+	default:
+	case OBS_OUTPUT_ERROR:
+		use_last_error = true;
+		errorDescription = Str("Output.ConnectFail.Error");
+		break;
+
+	case OBS_OUTPUT_DISCONNECTED:
+		/* doesn't happen if output is set to reconnect.  note that
+     * reconnects are handled in the output, not in the UI */
+		use_last_error = true;
+		errorDescription = Str("Output.ConnectFail.Disconnected");
+	}
+
+	if (use_last_error && !last_error.isEmpty())
+		dstr_printf(errorMessage, "%s\n\n%s", errorDescription, QT_TO_UTF8(last_error));
+	else
+		dstr_copy(errorMessage, errorDescription);
+
+	ui->startStreamingButton->setEnabled(true);
+	ui->stopStreamingButton->setEnabled(false);
+
+	streamingStopping = false;
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_STREAMING_STOPPED);
+
+	blog(LOG_INFO, STREAMING_STOP);
+
+	if (encode_error) {
+		blog(LOG_ERROR, "streaming error, %s", last_error.toStdString().c_str());
 	}
 }
