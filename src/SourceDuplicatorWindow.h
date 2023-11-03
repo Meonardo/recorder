@@ -19,9 +19,9 @@ class SourceDuplicatorWindow : public QWidget {
 public:
 	SourceDuplicatorWindow(OBSSource source, QWidget* parent = nullptr);
 	~SourceDuplicatorWindow();
-  void Init();
+	void Init();
 
-  const char* SourceName();
+	const char* SourceName();
 
 protected:
 	virtual void closeEvent(QCloseEvent* event) override;
@@ -30,23 +30,23 @@ protected:
 
 private:
 	Ui::SourceDuplicatorWindowClass* ui;
-  MainWindow* main;
-  bool acceptClicked;
+	MainWindow* main;
+	bool acceptClicked;
 
-  OBSSource source;
-  OBSSourceAutoRelease sourceA;
-  OBSSourceAutoRelease sourceB;
-  OBSSourceAutoRelease sourceClone;
+	OBSSource source;
+	OBSSourceAutoRelease sourceA;
+	OBSSourceAutoRelease sourceB;
+	OBSSourceAutoRelease sourceClone;
 
-  OBSSignal removedSignal;
-  OBSSignal renamedSignal;
-  OBSSignal updatePropertiesSignal;
+	OBSSignal removedSignal;
+	OBSSignal renamedSignal;
+	OBSSignal updatePropertiesSignal;
 
-  void Cleanup();
+	void Cleanup();
 
-  static void SourceRemoved(void* data, calldata_t* params);
-  static void SourceRenamed(void* data, calldata_t* params);
-  static void UpdateProperties(void* data, calldata_t* params);
-  static void DrawPreview(void* data, uint32_t cx, uint32_t cy);
-  static void DrawTransitionPreview(void* data, uint32_t cx, uint32_t cy);
+	static void SourceRemoved(void* data, calldata_t* params);
+	static void SourceRenamed(void* data, calldata_t* params);
+	static void UpdateProperties(void* data, calldata_t* params);
+	static void DrawPreview(void* data, uint32_t cx, uint32_t cy);
+	static void DrawTransitionPreview(void* data, uint32_t cx, uint32_t cy);
 };

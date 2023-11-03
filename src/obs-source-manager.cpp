@@ -411,7 +411,7 @@ void OBSSourceManager::ListScreenItems(
 		auto id = obs_property_list_item_string(p, i);
 		blog(LOG_INFO, "enum monitor: %s, id=%s", name, id);
 
-    std::string name_std_string(name);
+		std::string name_std_string(name);
 		auto item = std::make_shared<source::ScreenSceneItem>(name_std_string);
 		item->id = id;
 		items.push_back(item);
@@ -485,7 +485,7 @@ void OBSSourceManager::ListCameraItems(
 		size_t count_res = obs_property_list_item_count(p_res);
 
 		item->resolutions_.reserve(count_res);
-    size_t max_support_res = 0;
+		size_t max_support_res = 0;
 		for (size_t j = 0; j < count_res; j++) {
 			const char* res = obs_property_list_item_name(p_res, j);
 			blog(LOG_ERROR, "enum device(%s), resolution=%s", name, res);
@@ -630,7 +630,7 @@ void OBSSourceManager::ListAudioItems(std::vector<std::shared_ptr<source::AudioS
 				continue;
 		}
 
-    std::string name_std_string(name);
+		std::string name_std_string(name);
 		if (input) {
 			auto item = std::make_shared<source::AudioInputItem>(name_std_string);
 			item->device_id_ = id;
@@ -817,14 +817,6 @@ bool OBSSourceManager::StopVirtualCamera() {
 	return true;
 }
 
-bool OBSSourceManager::StartJanusStream() {
-	return true;
-}
-
-bool OBSSourceManager::StopJanusStream() {
-	return true;
-}
-
 bool OBSSourceManager::SetStreamAddress(std::string& addr, std::string& username,
 					std::string& passwd) {
 	if (addr.empty()) {
@@ -909,17 +901,17 @@ bool OBSSourceManager::StopStreaming() {
 }
 
 bool OBSSourceManager::SetCurrentRecordingFolder(const char* path) {
-  QDir dir(path);
-  if (!dir.exists()) {
-    dir.mkpath(".");
-  }
+	QDir dir(path);
+	if (!dir.exists()) {
+		dir.mkpath(".");
+	}
 
-  config_t* profile = obs_frontend_get_profile_config();
-  config_set_string(profile, "AdvOut", "RecFilePath", path);
-  config_set_string(profile, "SimpleOutput", "FilePath", path);
+	config_t* profile = obs_frontend_get_profile_config();
+	config_set_string(profile, "AdvOut", "RecFilePath", path);
+	config_set_string(profile, "SimpleOutput", "FilePath", path);
 
-  config_save(profile);
-  return true;
+	config_save(profile);
+	return true;
 }
 
 } //namespace recorder::manager

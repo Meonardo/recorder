@@ -49,11 +49,6 @@ public:
 	// stop virtual camera
 	bool StopVirtualCamera();
 
-	// start janus stream
-	bool StartJanusStream();
-	// stop janus stream
-	bool StopJanusStream();
-
 	// set stream address, like: rtmp://192.168.99.135
 	bool SetStreamAddress(std::string& addr, std::string& username, std::string& passwd);
 	void GetSteamAddress(std::string& address, std::string& username, std::string& passwd);
@@ -64,7 +59,7 @@ public:
 
 	void AddDefaultAudioSource();
 
-  bool SetCurrentRecordingFolder(const char* path);
+	bool SetCurrentRecordingFolder(const char* path);
 
 private:
 	void LoadGroups(std::vector<obs_source_t*>& groups);
