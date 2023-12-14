@@ -3,6 +3,8 @@
 
 #include <cmath>
 #include <string>
+#include <math.h>
+
 #include <graphics/vec4.h>
 #include <graphics/matrix4.h>
 #include "window-basic-preview.hpp"
@@ -1642,15 +1644,15 @@ static void DrawStripedLine(float x1, float y1, float x2, float y2, float thickn
 		float dy;
 
 		if (x1 < x2) {
-			dx = std::min(xx1 + 7.5f * offX, x2);
+			dx = min(xx1 + 7.5f * offX, x2);
 		} else {
-			dx = std::max(xx1 + 7.5f * offX, x2);
+			dx = max(xx1 + 7.5f * offX, x2);
 		}
 
 		if (y1 < y2) {
-			dy = std::min(yy1 + 7.5f * offY, y2);
+			dy = min(yy1 + 7.5f * offY, y2);
 		} else {
-			dy = std::max(yy1 + 7.5f * offY, y2);
+			dy = max(yy1 + 7.5f * offY, y2);
 		}
 
 		gs_vertex2f(xx1, yy1);

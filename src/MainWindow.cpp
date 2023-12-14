@@ -630,7 +630,7 @@ void MainWindow::OBSInit() {
 	connect(ui->preview, &OBSQTDisplay::DisplayCreated, addDisplay);
 
 #ifdef _WIN32
-	SetWin32DropStyle(this);
+	SetWin32DropStyle((HWND)this->winId());
 	show();
 #endif
 

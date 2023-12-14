@@ -19,7 +19,7 @@
 #include <sstream>
 #include "obs-config.h"
 #include "obs-app.hpp"
-#include "qt-wrappers.hpp"
+//#include "qt-wrappers.hpp"
 #include "platform.hpp"
 
 #include <util/windows/win-version.h>
@@ -160,13 +160,12 @@ uint32_t GetWindowsBuild() {
 	return build;
 }
 
-bool IsAlwaysOnTop(QWidget* window) {
-	DWORD exStyle = GetWindowLong((HWND)window->winId(), GWL_EXSTYLE);
+bool IsAlwaysOnTop(HWND handle) {
+	DWORD exStyle = GetWindowLong(handle, GWL_EXSTYLE);
 	return (exStyle & WS_EX_TOPMOST) != 0;
 }
 
-void SetAlwaysOnTop(QWidget* window, bool enable) {
-	HWND hwnd = (HWND)window->winId();
+void SetAlwaysOnTop(HWND hwnd, bool enable) {
 	SetWindowPos(hwnd, enable ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
 		     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
@@ -187,8 +186,7 @@ void SetProcessPriority(const char* priority) {
 		SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
 }
 
-void SetWin32DropStyle(QWidget* window) {
-	HWND hwnd = (HWND)window->winId();
+void SetWin32DropStyle(HWND hwnd) {
 	LONG_PTR ex_style = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
 	ex_style |= WS_EX_ACCEPTFILES;
 	SetWindowLongPtr(hwnd, GWL_EXSTYLE, ex_style);
@@ -327,65 +325,6 @@ static BOOL CALLBACK GetMonitorCallback(HMONITOR monitor, HDC, LPRECT, LPARAM pa
 
 	return true;
 }
-
-#if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
-#define GENERIC_MONITOR_NAME QStringLiteral("Generic PnP Monitor")
-
-QString GetMonitorName(const QString& id) {
-	MonitorData data = {};
-	data.id = (const wchar_t*)id.utf16();
-	data.info.cbSize = sizeof(data.info);
-
-	EnumDisplayMonitors(nullptr, nullptr, GetMonitorCallback, (LPARAM)&data);
-	if (!data.found) {
-		return GENERIC_MONITOR_NAME;
-	}
-
-	UINT32 numPath, numMode;
-	if (GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &numPath, &numMode) !=
-	    ERROR_SUCCESS) {
-		return GENERIC_MONITOR_NAME;
-	}
-
-	std::vector<DISPLAYCONFIG_PATH_INFO> paths(numPath);
-	std::vector<DISPLAYCONFIG_MODE_INFO> modes(numMode);
-
-	if (QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &numPath, paths.data(), &numMode,
-			       modes.data(), nullptr) != ERROR_SUCCESS) {
-		return GENERIC_MONITOR_NAME;
-	}
-
-	DISPLAYCONFIG_TARGET_DEVICE_NAME target;
-	bool found = false;
-
-	paths.resize(numPath);
-	for (size_t i = 0; i < numPath; ++i) {
-		const DISPLAYCONFIG_PATH_INFO& path = paths[i];
-
-		DISPLAYCONFIG_SOURCE_DEVICE_NAME s;
-		s.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
-		s.header.size = sizeof(s);
-		s.header.adapterId = path.sourceInfo.adapterId;
-		s.header.id = path.sourceInfo.id;
-
-		if (DisplayConfigGetDeviceInfo(&s.header) == ERROR_SUCCESS &&
-		    wcscmp(data.info.szDevice, s.viewGdiDeviceName) == 0) {
-			target.header.type = DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME;
-			target.header.size = sizeof(target);
-			target.header.adapterId = path.sourceInfo.adapterId;
-			target.header.id = path.targetInfo.id;
-			found = DisplayConfigGetDeviceInfo(&target.header) == ERROR_SUCCESS;
-			break;
-		}
-	}
-
-	if (!found) {
-		return GENERIC_MONITOR_NAME;
-	}
-
-	return QString::fromWCharArray(target.monitorFriendlyDeviceName);
-}
-#endif
 
 /* Based on https://www.winehq.org/pipermail/wine-devel/2008-September/069387.html */
 typedef const char*(CDECL* WINEGETVERSION)(void);

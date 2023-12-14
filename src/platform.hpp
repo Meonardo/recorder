@@ -22,19 +22,18 @@
 #include <string>
 #include <vector>
 
-class QWidget;
+#include <Windows.h>
 
 /* Gets the path of obs-studio specific data files (such as locale) */
 bool GetDataFilePath(const char* data, std::string& path);
+std::vector<std::string> GetPreferredLocales();
 
 std::string GetDefaultVideoSavePath();
 
-std::vector<std::string> GetPreferredLocales();
-
-bool IsAlwaysOnTop(QWidget* window);
-void SetAlwaysOnTop(QWidget* window, bool enable);
-
 bool SetDisplayAffinitySupported(void);
+
+bool IsAlwaysOnTop(HWND handle);
+void SetAlwaysOnTop(HWND handle, bool enable);
 
 enum TaskbarOverlayStatus {
 	TaskbarOverlayStatusInactive,
@@ -56,7 +55,7 @@ CheckIfAlreadyRunning(bool& already_running);
 uint32_t GetWindowsVersion();
 uint32_t GetWindowsBuild();
 void SetProcessPriority(const char* priority);
-void SetWin32DropStyle(QWidget* window);
+void SetWin32DropStyle(HWND hwnd);
 bool DisableAudioDucking(bool disable);
 
 struct RunOnceMutexData;
@@ -74,37 +73,4 @@ public:
 	RunOnceMutex& operator=(RunOnceMutex&& rom);
 };
 
-#if QT_VERSION < QT_VERSION_CHECK(6, 4, 0)
-QString GetMonitorName(const QString& id);
-#endif
-bool IsRunningOnWine();
-#endif
-
-#ifdef __APPLE__
-typedef enum {
-	kAudioDeviceAccess = 0,
-	kVideoDeviceAccess = 1,
-	kScreenCapture = 2,
-	kAccessibility = 3
-} MacPermissionType;
-
-typedef enum {
-	kPermissionNotDetermined = 0,
-	kPermissionRestricted = 1,
-	kPermissionDenied = 2,
-	kPermissionAuthorized = 3,
-} MacPermissionStatus;
-
-void EnableOSXVSync(bool enable);
-void EnableOSXDockIcon(bool enable);
-bool isInBundle();
-void InstallNSApplicationSubclass();
-void InstallNSThreadLocks();
-void disableColorSpaceConversion(QWidget* window);
-void SetMacOSDarkMode(bool dark);
-
-MacPermissionStatus CheckPermissionWithPrompt(MacPermissionType type, bool prompt_for_permission);
-#define CheckPermission(x) CheckPermissionWithPrompt(x, false)
-#define RequestPermission(x) CheckPermissionWithPrompt(x, true)
-void OpenMacOSPrivacyPreferences(const char* tab);
 #endif
