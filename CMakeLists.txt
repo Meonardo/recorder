@@ -32,16 +32,16 @@ target_sources(
   PRIVATE
 
   # core app
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/app.cpp
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/app.h
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/app-profile.cpp
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/utils.cpp
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/utils.h
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/ui.cpp
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/ui.h
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/output.cpp
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/output.h
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/defines.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/app.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/app.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/app-profile.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/utils.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/utils.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/ui.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/ui.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/output.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/output.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/defines.h
 
   # ${CMAKE_CURRENT_SOURCE_DIR}/core/transition.cpp
   # ${CMAKE_CURRENT_SOURCE_DIR}/core/transition.h

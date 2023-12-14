@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <functional>
 
+namespace core {
+
 void EnumProfiles(std::function<bool(const char*, const char*)>&& cb) {
 	char path[512];
 	os_glob_t* glob;
@@ -163,8 +165,6 @@ static bool ProfileNeedsRestart(config_t* newConfig, std::string& settings) {
 
 	return result;
 }
-
-namespace core {
 
 bool App::AddProfile(bool create_new, const char* title, const char* text, const char* init_text,
 		     bool rename) {

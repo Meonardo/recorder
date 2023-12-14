@@ -21,9 +21,8 @@ public:
 	inline ~BaseLexer() { lexer_free(&lex); }
 	operator lexer*() { return &lex; }
 };
-} // namespace core
 
-static bool get_token(lexer* lex, std::string& str, base_token_type type) {
+bool get_token(lexer* lex, std::string& str, base_token_type type) {
 	base_token token;
 	if (!lexer_getbasetoken(lex, &token, IGNORE_WHITESPACE))
 		return false;
@@ -34,7 +33,7 @@ static bool get_token(lexer* lex, std::string& str, base_token_type type) {
 	return true;
 }
 
-static bool expect_token(lexer* lex, const char* str, base_token_type type) {
+bool expect_token(lexer* lex, const char* str, base_token_type type) {
 	base_token token;
 	if (!lexer_getbasetoken(lex, &token, IGNORE_WHITESPACE))
 		return false;
@@ -44,7 +43,7 @@ static bool expect_token(lexer* lex, const char* str, base_token_type type) {
 	return strref_cmp(&token.text, str) == 0;
 }
 
-static uint64_t convert_log_name(bool has_prefix, const char* name) {
+uint64_t convert_log_name(bool has_prefix, const char* name) {
 	core::BaseLexer lex;
 	std::string year, month, day, hour, minute, second;
 
@@ -82,7 +81,7 @@ static uint64_t convert_log_name(bool has_prefix, const char* name) {
 	return std::stoull(timestring.str());
 }
 
-static void get_last_log(bool has_prefix, const char* subdir_to_use, std::string& last) {
+void get_last_log(bool has_prefix, const char* subdir_to_use, std::string& last) {
 	BPtr<char> logDir(GetConfigPathPtr(subdir_to_use));
 	struct os_dirent* entry;
 	os_dir_t* dir = os_opendir(logDir);
@@ -105,7 +104,7 @@ static void get_last_log(bool has_prefix, const char* subdir_to_use, std::string
 	}
 }
 
-static void remove_reserved_file_characters(std::string& s) {
+void remove_reserved_file_characters(std::string& s) {
 	replace(s.begin(), s.end(), '\\', '/');
 	replace(s.begin(), s.end(), '*', '_');
 	replace(s.begin(), s.end(), '?', '_');
@@ -116,7 +115,7 @@ static void remove_reserved_file_characters(std::string& s) {
 	replace(s.begin(), s.end(), '<', '_');
 }
 
-static void ensure_directory_exists(std::string& path) {
+void ensure_directory_exists(std::string& path) {
 	replace(path.begin(), path.end(), '\\', '/');
 
 	size_t last = path.rfind('/');
@@ -127,7 +126,7 @@ static void ensure_directory_exists(std::string& path) {
 	os_mkdirs(directory.c_str());
 }
 
-static void FindBestFilename(std::string& strPath, bool noSpace) {
+void FindBestFilename(std::string& strPath, bool noSpace) {
 	int num = 2;
 
 	if (!os_file_exists(strPath.c_str()))
@@ -156,7 +155,7 @@ static void FindBestFilename(std::string& strPath, bool noSpace) {
 	}
 }
 
-static bool do_mkdir(const char* path) {
+bool do_mkdir(const char* path) {
 	if (os_mkdirs(path) == MKDIR_ERROR) {
 		blog(LOG_ERROR, "Failed to create directory %s", path);
 		return false;
@@ -165,7 +164,7 @@ static bool do_mkdir(const char* path) {
 	return true;
 }
 
-static bool MakeUserDirs() {
+bool MakeUserDirs() {
 	char path[512];
 
 	if (GetConfigPath(path, sizeof(path), "obs-studio/basic") <= 0)
@@ -205,7 +204,7 @@ static bool MakeUserDirs() {
 	return true;
 }
 
-static bool MakeUserProfileDirs() {
+bool MakeUserProfileDirs() {
 	char path[512];
 
 	if (GetConfigPath(path, sizeof(path), "obs-studio/basic/profiles") <= 0)
@@ -221,7 +220,7 @@ static bool MakeUserProfileDirs() {
 	return true;
 }
 
-static std::string GetProfileDirFromName(const char* name) {
+std::string GetProfileDirFromName(const char* name) {
 	std::string outputPath;
 	os_glob_t* glob;
 	char path[512];
@@ -265,7 +264,7 @@ static std::string GetProfileDirFromName(const char* name) {
 	return outputPath;
 }
 
-static std::string GetSceneCollectionFileFromName(const char* name) {
+std::string GetSceneCollectionFileFromName(const char* name) {
 	std::string outputPath;
 	os_glob_t* glob;
 	char path[512];
@@ -305,7 +304,7 @@ static std::string GetSceneCollectionFileFromName(const char* name) {
 	return outputPath;
 }
 
-static std::string CurrentTimeString() {
+std::string CurrentTimeString() {
 	using namespace std::chrono;
 
 	struct tm tstruct;
@@ -328,7 +327,7 @@ static std::string CurrentTimeString() {
 	return buf;
 }
 
-static std::string CurrentDateTimeString() {
+std::string CurrentDateTimeString() {
 	time_t now = time(0);
 	struct tm tstruct;
 	char buf[80];
@@ -337,7 +336,7 @@ static std::string CurrentDateTimeString() {
 	return buf;
 }
 
-static std::string GenerateTimeDateFilename(const char* extension, bool noSpace) {
+std::string GenerateTimeDateFilename(const char* extension, bool noSpace) {
 	time_t now = time(0);
 	char file[256] = {};
 	struct tm* cur_time;
@@ -350,13 +349,12 @@ static std::string GenerateTimeDateFilename(const char* extension, bool noSpace)
 	return std::string(file);
 }
 
-static std::string GenerateSpecifiedFilename(const char* extension, bool noSpace,
-					     const char* format) {
+std::string GenerateSpecifiedFilename(const char* extension, bool noSpace, const char* format) {
 	BPtr<char> filename = os_generate_formatted_filename(extension, !noSpace, format);
 	return std::string(filename);
 }
 
-static std::string GetFormatString(const char* format, const char* prefix, const char* suffix) {
+std::string GetFormatString(const char* format, const char* prefix, const char* suffix) {
 	std::string f;
 
 	f = format;
@@ -392,7 +390,7 @@ static std::string GetFormatString(const char* format, const char* prefix, const
 	return f;
 }
 
-static std::string GetFormatExt(const char* container) {
+std::string GetFormatExt(const char* container) {
 	std::string ext = container;
 	if (ext == "fragmented_mp4")
 		ext = "mp4";
@@ -406,8 +404,8 @@ static std::string GetFormatExt(const char* container) {
 	return ext;
 }
 
-static std::string GetOutputFilename(const char* path, const char* container, bool noSpace,
-				     bool overwrite, const char* format) {
+std::string GetOutputFilename(const char* path, const char* container, bool noSpace, bool overwrite,
+			      const char* format) {
 	os_dir_t* dir = path && path[0] ? os_opendir(path) : nullptr;
 
 	if (!dir) {
@@ -433,7 +431,7 @@ static std::string GetOutputFilename(const char* path, const char* container, bo
 	return strPath;
 }
 
-static int GetConfigPath(char* path, size_t size, const char* name) {
+int GetConfigPath(char* path, size_t size, const char* name) {
 #if ALLOW_PORTABLE_MODE
 	if (portable_mode) {
 		if (name && *name) {
@@ -449,7 +447,7 @@ static int GetConfigPath(char* path, size_t size, const char* name) {
 #endif
 }
 
-static char* GetConfigPathPtr(const char* name) {
+char* GetConfigPathPtr(const char* name) {
 #if ALLOW_PORTABLE_MODE
 	if (portable_mode) {
 		char path[512];
@@ -467,7 +465,7 @@ static char* GetConfigPathPtr(const char* name) {
 #endif
 }
 
-static int GetProfilePath(char* path, size_t size, const char* file, const char* profile) {
+int GetProfilePath(char* path, size_t size, const char* file, const char* profile) {
 	char profiles_path[512];
 	int ret;
 
@@ -488,15 +486,15 @@ static int GetProfilePath(char* path, size_t size, const char* file, const char*
 	return snprintf(path, size, "%s/%s/%s", profiles_path, profile, file);
 }
 
-static int GetProgramDataPath(char* path, size_t size, const char* name) {
+int GetProgramDataPath(char* path, size_t size, const char* name) {
 	return os_get_program_data_path(path, size, name);
 }
 
-static char* GetProgramDataPathPtr(const char* name) {
+char* GetProgramDataPathPtr(const char* name) {
 	return os_get_program_data_path_ptr(name);
 }
 
-static bool GetFileSafeName(const char* name, std::string& file) {
+bool GetFileSafeName(const char* name, std::string& file) {
 	size_t base_len = strlen(name);
 	size_t len = os_utf8_to_wcs(name, base_len, nullptr, 0);
 	std::wstring wfile;
@@ -529,7 +527,7 @@ static bool GetFileSafeName(const char* name, std::string& file) {
 	return true;
 }
 
-static bool GetClosestUnusedFileName(std::string& path, const char* extension) {
+bool GetClosestUnusedFileName(std::string& path, const char* extension) {
 	size_t len = path.size();
 	if (extension) {
 		path += ".";
@@ -553,7 +551,7 @@ static bool GetClosestUnusedFileName(std::string& path, const char* extension) {
 	return true;
 }
 
-static bool GetUnusedSceneCollectionFile(std::string& name, std::string& file) {
+bool GetUnusedSceneCollectionFile(std::string& name, std::string& file) {
 	char path[512];
 	int ret;
 
@@ -580,7 +578,7 @@ static bool GetUnusedSceneCollectionFile(std::string& name, std::string& file) {
 	return true;
 }
 
-static std::vector<std::pair<std::string, std::string>> GetLocaleNames() {
+std::vector<std::pair<std::string, std::string>> GetLocaleNames() {
 	std::string path;
 	if (!GetDataFilePath("locale.ini", path))
 		throw "Could not find locale.ini path";
@@ -602,7 +600,7 @@ static std::vector<std::pair<std::string, std::string>> GetLocaleNames() {
 	return names;
 }
 
-static bool EncoderAvailable(const char* encoder) {
+bool EncoderAvailable(const char* encoder) {
 	const char* val;
 	int i = 0;
 
@@ -613,7 +611,7 @@ static bool EncoderAvailable(const char* encoder) {
 	return false;
 }
 
-static enum obs_scale_type GetScaleType(ConfigFile& basicConfig) {
+enum obs_scale_type GetScaleType(ConfigFile& basicConfig) {
 	const char* scaleTypeStr = config_get_string(basicConfig, "Video", "ScaleType");
 
 	if (astrcmpi(scaleTypeStr, "bilinear") == 0)
@@ -626,7 +624,7 @@ static enum obs_scale_type GetScaleType(ConfigFile& basicConfig) {
 		return OBS_SCALE_BICUBIC;
 }
 
-static enum video_format GetVideoFormatFromName(const char* name) {
+enum video_format GetVideoFormatFromName(const char* name) {
 	if (astrcmpi(name, "I420") == 0)
 		return VIDEO_FORMAT_I420;
 	else if (astrcmpi(name, "NV12") == 0)
@@ -653,7 +651,7 @@ static enum video_format GetVideoFormatFromName(const char* name) {
 		return VIDEO_FORMAT_BGRA;
 }
 
-static enum video_colorspace GetVideoColorSpaceFromName(const char* name) {
+enum video_colorspace GetVideoColorSpaceFromName(const char* name) {
 	enum video_colorspace colorspace = VIDEO_CS_SRGB;
 	if (strcmp(name, "601") == 0)
 		colorspace = VIDEO_CS_601;
@@ -667,7 +665,7 @@ static enum video_colorspace GetVideoColorSpaceFromName(const char* name) {
 	return colorspace;
 }
 
-static bool HasAudioDevices(const char* source_id) {
+bool HasAudioDevices(const char* source_id) {
 	const char* output_id = source_id;
 	obs_properties_t* props = obs_get_source_properties(output_id);
 	size_t count = 0;
@@ -684,7 +682,7 @@ static bool HasAudioDevices(const char* source_id) {
 	return count != 0;
 }
 
-static void AddExtraModulePaths() {
+void AddExtraModulePaths() {
 	std::string plugins_path, plugins_data_path;
 	char* s;
 
@@ -752,12 +750,12 @@ static void AddExtraModulePaths() {
 
 /* First-party modules considered to be potentially unsafe to load in Safe Mode
  * due to them allowing external code (e.g. scripts) to modify OBS's state. */
-static const std::unordered_set<std::string> unsafe_modules = {
+const std::unordered_set<std::string> unsafe_modules = {
   "frontend-tools", // Scripting
   "obs-websocket",  // Allows outside modifications
 };
 
-static void SetSafeModuleNames() {
+void SetSafeModuleNames() {
 #ifndef SAFE_MODULES
 	return;
 #else
@@ -773,7 +771,7 @@ static void SetSafeModuleNames() {
 #endif
 }
 
-static void LogFilter(obs_source_t*, obs_source_t* filter, void* v_val) {
+void LogFilter(obs_source_t*, obs_source_t* filter, void* v_val) {
 	const char* name = obs_source_get_name(filter);
 	const char* id = obs_source_get_id(filter);
 	int val = (int)(intptr_t)v_val;
@@ -784,7 +782,7 @@ static void LogFilter(obs_source_t*, obs_source_t* filter, void* v_val) {
 	blog(LOG_INFO, "%s- filter: '%s' (%s)", indent.c_str(), name, id);
 }
 
-static bool LogSceneItem(obs_scene_t*, obs_sceneitem_t* item, void* v_val) {
+bool LogSceneItem(obs_scene_t*, obs_sceneitem_t* item, void* v_val) {
 	obs_source_t* source = obs_sceneitem_get_source(item);
 	const char* name = obs_source_get_name(source);
 	const char* id = obs_source_get_id(source);
@@ -821,7 +819,7 @@ static bool LogSceneItem(obs_scene_t*, obs_sceneitem_t* item, void* v_val) {
 	return true;
 }
 
-static void LoadAudioDevice(const char* name, int channel, obs_data_t* parent) {
+void LoadAudioDevice(const char* name, int channel, obs_data_t* parent) {
 	OBSDataAutoRelease data = obs_data_get_obj(parent, name);
 	if (!data)
 		return;
@@ -845,7 +843,7 @@ static void LoadAudioDevice(const char* name, int channel, obs_data_t* parent) {
 	}
 }
 
-static void AddMissingFiles(void* data, obs_source_t* source) {
+void AddMissingFiles(void* data, obs_source_t* source) {
 	obs_missing_files_t* f = (obs_missing_files_t*)data;
 	obs_missing_files_t* sf = obs_source_get_missing_files(source);
 
@@ -853,27 +851,28 @@ static void AddMissingFiles(void* data, obs_source_t* source) {
 	obs_missing_files_destroy(sf);
 }
 
-static const char* InputAudioSource() {
-  return INPUT_AUDIO_SOURCE;
+const char* InputAudioSource() {
+	return INPUT_AUDIO_SOURCE;
 }
 
-static const char* OutputAudioSource() {
-  return OUTPUT_AUDIO_SOURCE;
+const char* OutputAudioSource() {
+	return OUTPUT_AUDIO_SOURCE;
 }
 
-static char* get_new_source_name(const char* name, const char* format) {
-  struct dstr new_name = { 0 };
-  int inc = 0;
+char* get_new_source_name(const char* name, const char* format) {
+	struct dstr new_name = {0};
+	int inc = 0;
 
-  dstr_copy(&new_name, name);
+	dstr_copy(&new_name, name);
 
-  for (;;) {
-    OBSSourceAutoRelease existing_source = obs_get_source_by_name(new_name.array);
-    if (!existing_source)
-      break;
+	for (;;) {
+		OBSSourceAutoRelease existing_source = obs_get_source_by_name(new_name.array);
+		if (!existing_source)
+			break;
 
-    dstr_printf(&new_name, format, name, ++inc + 1);
-  }
+		dstr_printf(&new_name, format, name, ++inc + 1);
+	}
 
-  return new_name.array;
+	return new_name.array;
 }
+} // namespace core

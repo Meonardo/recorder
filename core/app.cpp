@@ -38,6 +38,8 @@ static std::string lastCrashLogFile;
 static bool log_verbose = false;
 static bool unfiltered_log = false;
 
+namespace core {
+
 static void delete_oldest_file(bool has_prefix, const char* location) {
 	BPtr<char> logDir(GetConfigPathPtr(location));
 	std::string oldestLog;
@@ -888,6 +890,8 @@ static obs_data_t* GenerateSaveData(obs_data_array_t* sceneOrder,
 
 static const char* run_program_init = "run_program_init";
 
+} // namespace core
+
 namespace core {
 
 App::App() {}
@@ -1445,23 +1449,23 @@ bool App::OBSInit() {
 
 	loaded = true;
 
-  previewEnabled = config_get_bool(GlobalConfig(), "BasicWindow", "PreviewEnabled");
+	previewEnabled = config_get_bool(GlobalConfig(), "BasicWindow", "PreviewEnabled");
 
-  // notify UI to show preview
+	// notify UI to show preview
 
-  RefreshProfiles();
-  disableSaving--;
+	RefreshProfiles();
+	disableSaving--;
 
-  // begin to render
+	// begin to render
 
-  bool first_run = config_get_bool(GlobalConfig(), "General", "FirstRun");
-  if (!first_run) {
-    config_set_bool(GlobalConfig(), "General", "FirstRun", true);
-    config_save_safe(GlobalConfig(), "tmp", nullptr);
-  }
+	bool first_run = config_get_bool(GlobalConfig(), "General", "FirstRun");
+	if (!first_run) {
+		config_set_bool(GlobalConfig(), "General", "FirstRun", true);
+		config_save_safe(GlobalConfig(), "tmp", nullptr);
+	}
 
-  if (api)
-    api->on_event(OBS_FRONTEND_EVENT_FINISHED_LOADING);
+	if (api)
+		api->on_event(OBS_FRONTEND_EVENT_FINISHED_LOADING);
 
 	return true;
 }
