@@ -11,7 +11,8 @@ class UIApplication {
 public:
 	virtual ~UIApplication() = default;
 
-	virtual int execute() = 0;
+	virtual int Execute() = 0;
+  virtual void OnConfigureFinished() = 0;
 };
 
 class UIWindow {

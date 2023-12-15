@@ -7,6 +7,7 @@
 #include <util/util.hpp>
 #include <util/platform.h>
 #include <util/lexer.h>
+#include <util/threading.h>
 
 #include "../src/platform.hpp"
 

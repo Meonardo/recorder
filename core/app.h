@@ -59,6 +59,10 @@ public:
 	}
 	inline ConfigFile& BasicConfig() { return basicConfig; }
 	inline void SetOutputCallback(OutputCallback* callback) { outputCallback = callback; }
+	inline bool IsPreviewProgramMode() const {
+		return os_atomic_load_bool(&previewProgramMode);
+	}
+	inline bool IsPreviewEnabled() const { return previewEnabled; }
 
 	profiler_name_store_t* GetProfilerNameStore() const { return profilerNameStore; }
 
@@ -89,6 +93,7 @@ private:
 	std::vector<Scene*> scenes;
 	std::vector<OBSSceneItem> sources;
 
+	volatile bool previewProgramMode = false;
 	bool libobs_initialized = false;
 	bool loaded = false;
 	long disableSaving = 1;
@@ -193,5 +198,5 @@ private:
 #define CoreApp core::App::Get()
 
 inline const char* Str(const char* lookup) {
-  return CoreApp->GetString(lookup);
+	return CoreApp->GetString(lookup);
 }

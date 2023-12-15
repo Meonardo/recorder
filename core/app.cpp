@@ -1034,7 +1034,6 @@ int App::Run(int argc, char* argv[], UIApplication* application) {
 
 	std::fstream logFile;
 
-	// curl_global_init(CURL_GLOBAL_ALL);
 	int ret = RunMain(logFile, argc, argv);
 
 	if (hRtwq) {
@@ -1067,16 +1066,13 @@ int App::RunMain(std::fstream& logFile, int argc, char* argv[]) {
 
 	this->profilerNameStore = profilerNameStore.get();
 
-	bool created_log = false;
-
-	delete_oldest_file(false, "obs-studio/profiler_data");
-
 	sleepInhibitor = os_inhibit_sleep_create("OBS Video/audio");
 
 	AppInit();
 
 	delete_oldest_file(false, "obs-studio/profiler_data");
 
+  bool created_log = false;
 	if (!created_log) {
 		create_log_file(logFile);
 		created_log = true;
@@ -1093,7 +1089,7 @@ int App::RunMain(std::fstream& logFile, int argc, char* argv[]) {
 
 	prof.Stop();
 
-	ret = application->execute();
+	ret = application->Execute();
 
 	return ret;
 }
@@ -1361,8 +1357,9 @@ bool App::OBSInit() {
 
 	libobs_initialized = true;
 
-	// window
-	// mainWindow->OBSInit();
+	// tell application instance ready to update UI
+  application->OnConfigureFinished();
+
 	const char* sceneCollection =
 	  config_get_string(GlobalConfig(), "Basic", "SceneCollectionFile");
 	char savePath[1024];

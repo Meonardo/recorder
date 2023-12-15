@@ -8,9 +8,13 @@
 #include <vector>
 
 #include "audio-encoders.hpp"
-#include "obs-app.hpp"
 
+#if 1
+#include "core/app.h"
+#else
+#include "obs-app.hpp"
 #include "MainWindow.h"
+#endif
 
 using namespace std;
 
@@ -65,6 +69,9 @@ static void HandleSampleRate(obs_property_t* prop, const char* id) {
 		return;
 	}
 
+#if 1
+	uint32_t sampleRate = config_get_uint(CoreApp->BasicConfig(), "Audio", "SampleRate");
+#else
 	auto main = reinterpret_cast<OBSMainWindow*>(App()->GetMainWindow());
 	if (!main) {
 		blog(LOG_ERROR, "Failed to get main window while populating "
@@ -73,6 +80,8 @@ static void HandleSampleRate(obs_property_t* prop, const char* id) {
 	}
 
 	uint32_t sampleRate = config_get_uint(main->Config(), "Audio", "SampleRate");
+
+#endif // 1
 
 	obs_data_set_int(data.get(), "samplerate", sampleRate);
 

@@ -41,10 +41,14 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/core/ui.h
   ${CMAKE_CURRENT_SOURCE_DIR}/core/output.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/output.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/preview.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/preview.h
   ${CMAKE_CURRENT_SOURCE_DIR}/core/defines.h
 
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/transition.cpp
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/transition.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.ui
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/main.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/window-main.hpp

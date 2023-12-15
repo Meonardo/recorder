@@ -2728,7 +2728,7 @@ void OBSApp::ProcessSigInt(void) {
 #endif
 }
 
-int main(int argc, char* argv[]) {
+int main2(int argc, char* argv[]) {
 #ifndef _WIN32
 	signal(SIGPIPE, SIG_IGN);
 
