@@ -49,6 +49,7 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.ui
   ${CMAKE_CURRENT_SOURCE_DIR}/test/main.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/test.h
 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/window-main.hpp

@@ -43,6 +43,8 @@ struct BasicOutputHandler;
 class OutputCallback;
 
 class App {
+	friend class SceneSourceManager;
+
 public:
 	static App* Get() {
 		static App g_app_;
@@ -88,10 +90,7 @@ private:
 	os_inhibit_t* sleepInhibitor = nullptr;
 	UIApplication* application = nullptr;
 	OutputCallback* outputCallback = nullptr;
-	std::unique_ptr<SourceSignalHandler> sourceSignalHandler = nullptr;
-
-	std::vector<Scene*> scenes;
-	std::vector<OBSSceneItem> sources;
+	std::unique_ptr<SceneSourceManager> sceneSourceManager = nullptr;
 
 	volatile bool previewProgramMode = false;
 	bool libobs_initialized = false;

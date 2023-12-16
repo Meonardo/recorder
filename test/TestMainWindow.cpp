@@ -59,22 +59,17 @@ TestMainWindow::~TestMainWindow() {
 void TestMainWindow::Prepare() {
 	ProfileScope("MainWindow::Prepare");
 
-  UpdatePreviewSafeAreas();
-  UpdatePreviewSpacingHelpers();
-  UpdatePreviewOverflowSettings();
+	UpdatePreviewSafeAreas();
+	UpdatePreviewSpacingHelpers();
+	UpdatePreviewOverflowSettings();
 
 	InitPrimitives();
 
-  ui->preview->SetDrawBox(box);
+	ui->preview->SetDrawBox(box);
 
 	previewEnabled = CoreApp->IsPreviewEnabled();
-
-	if (!previewEnabled && !CoreApp->IsPreviewProgramMode())
-		QMetaObject::invokeMethod(this, "EnablePreviewDisplay", Qt::QueuedConnection,
-					  Q_ARG(bool, previewEnabled));
-	else if (!previewEnabled && CoreApp->IsPreviewProgramMode())
-		QMetaObject::invokeMethod(this, "EnablePreviewDisplay", Qt::QueuedConnection,
-					  Q_ARG(bool, true));
+	QMetaObject::invokeMethod(this, "EnablePreviewDisplay", Qt::QueuedConnection,
+				  Q_ARG(bool, true));
 
 	obs_display_set_enabled(ui->preview->GetDisplay(), previewEnabled);
 	ui->preview->setVisible(previewEnabled);
@@ -84,13 +79,17 @@ void TestMainWindow::Prepare() {
 					      this);
 
 		struct obs_video_info ovi;
-		if (obs_get_video_info(&ovi))
+		if (obs_get_video_info(&ovi)) {
 			ResizePreview(ovi.base_width, ovi.base_height);
+		}
 	};
 
 	connect(ui->preview, &OBSQTDisplay::DisplayCreated, addDisplay);
 
-  activateWindow();
+	SetWin32DropStyle((HWND)this->winId());
+	show();
+
+	activateWindow();
 }
 
 bool TestMainWindow::nativeEvent(const QByteArray&, void* message, qintptr*) {

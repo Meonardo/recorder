@@ -323,7 +323,7 @@ void App::RefreshProfiles() {
 
 	auto addProfile = [&](const char* name, const char* path) {
 		std::string file = strrchr(path, '/') + 1;
-		blog(LOG_INFO, "profile: %s", file);
+		blog(LOG_INFO, "profile: %s", file.c_str());
 
 		return true;
 	};

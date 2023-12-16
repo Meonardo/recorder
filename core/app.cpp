@@ -1409,7 +1409,7 @@ bool App::OBSInit() {
 	}
 
 	// register source signal handler
-	sourceSignalHandler = std::make_unique<SourceSignalHandler>();
+	sceneSourceManager = std::make_unique<SceneSourceManager>();
 
 	struct obs_module_failure_info mfi;
 
@@ -1436,7 +1436,6 @@ bool App::OBSInit() {
 
 	ResetOutputs();
 
-	// InitPrimitives();
 	{
 		ProfileScope("OBSBasic::Load");
 		disableSaving--;
@@ -2258,17 +2257,17 @@ void App::LoadData(obs_data_t* data, const char* file) {
 	blog(LOG_INFO, "------------------------------------------------");
 	blog(LOG_INFO, "Loaded scenes:");
 
-	for (int i = 0; i < scenes.size(); i++) {
-		auto item = scenes[i];
-		OBSScene scene = OBSScene(item->Data());
+  auto scenes = sceneSourceManager->Scenes();
+  for (const auto item : scenes) {
+    OBSScene scene = OBSScene(item->Data());
 
-		obs_source_t* source = obs_scene_get_source(scene);
-		const char* name = obs_source_get_name(source);
+    obs_source_t* source = obs_scene_get_source(scene);
+    const char* name = obs_source_get_name(source);
 
-		blog(LOG_INFO, "- scene '%s':", name);
-		obs_scene_enum_items(scene, LogSceneItem, (void*)(intptr_t)1);
-		obs_source_enum_filters(source, LogFilter, (void*)(intptr_t)1);
-	}
+    blog(LOG_INFO, "- scene '%s':", name);
+    obs_scene_enum_items(scene, LogSceneItem, (void*)(intptr_t)1);
+    obs_source_enum_filters(source, LogFilter, (void*)(intptr_t)1);
+  }
 
 	blog(LOG_INFO, "------------------------------------------------");
 
@@ -2518,29 +2517,22 @@ void App::TransitionToScene(OBSSource source) {
 }
 
 void App::SetCurrentScene(OBSSource scene, bool force) {
-	OBSSource actualLastScene = OBSGetStrongRef(lastScene);
-	if (actualLastScene != scene) {
-		if (scene)
-			obs_source_inc_showing(scene);
-		if (actualLastScene)
-			obs_source_dec_showing(actualLastScene);
-		lastScene = OBSGetWeakRef(scene);
-	}
+  TransitionToScene(scene);
 
 	if (obs_scene_get_source(GetCurrentScene()) != scene) {
-		for (int i = 0; i < scenes.size(); i++) {
-			auto item = scenes[i];
-			OBSScene itemScene = OBSScene(item->Data());
-			obs_source_t* source = obs_scene_get_source(itemScene);
+    auto scenes = sceneSourceManager->Scenes();
+    for (const auto item : scenes) {
+      OBSScene itemScene = OBSScene(item->Data());
+      obs_source_t* source = obs_scene_get_source(itemScene);
 
-			if (source == scene) {
-				currentScene = itemScene.Get();
+      if (source == scene) {
+        currentScene = itemScene.Get();
 
-				if (api)
-					api->on_event(OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED);
-				break;
-			}
-		}
+        if (api)
+          api->on_event(OBS_FRONTEND_EVENT_SCENE_CHANGED);
+        break;
+      }
+    }
 	}
 
 	if (scene) {

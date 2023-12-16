@@ -53,6 +53,8 @@
 
 #include <iostream>
 
+#include "test/test.h"
+
 using namespace std;
 
 static log_handler_t def_log_handler;
@@ -2728,7 +2730,11 @@ void OBSApp::ProcessSigInt(void) {
 #endif
 }
 
-int main2(int argc, char* argv[]) {
+#if TEST
+int main1(int argc, char* argv[]) {
+#else
+int main(int argc, char* argv[]) {
+#endif
 #ifndef _WIN32
 	signal(SIGPIPE, SIG_IGN);
 

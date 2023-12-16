@@ -1,5 +1,6 @@
 #include "../core/app.h"
 
+#include "test.h"
 #include "TestMainWindow.h"
 
 typedef std::function<void()> VoidFunc;
@@ -22,14 +23,17 @@ private:
 	VoidFunc cb;
 };
 
+#if TEST
 int main(int argc, char* argv[]) {
+#else
+int main2(int argc, char* argv[]) {
+#endif
 	TestApp app(argc, argv);
 
   TestMainWindow mainWindow;
 
 	app.AddCallback([&mainWindow]() {
     mainWindow.Prepare();
-		mainWindow.show();
 	});
 
 	return CoreApp->Run(argc, argv, &app);

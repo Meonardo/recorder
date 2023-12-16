@@ -9,7 +9,9 @@
 
 #include "audio-encoders.hpp"
 
-#if 1
+#include "test/test.h"
+
+#if TEST
 #include "core/app.h"
 #else
 #include "obs-app.hpp"
@@ -69,7 +71,7 @@ static void HandleSampleRate(obs_property_t* prop, const char* id) {
 		return;
 	}
 
-#if 1
+#if TEST
 	uint32_t sampleRate = config_get_uint(CoreApp->BasicConfig(), "Audio", "SampleRate");
 #else
 	auto main = reinterpret_cast<OBSMainWindow*>(App()->GetMainWindow());
