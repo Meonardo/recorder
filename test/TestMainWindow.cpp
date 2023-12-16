@@ -11,23 +11,24 @@
 
 #include "../core/app.h"
 #include "../display-helpers.hpp"
+#include "../core/scene-source.h"
 
 TestMainWindow::TestMainWindow(QWidget* parent)
   : QMainWindow(parent),
     ui(new Ui::TestMainWindowClass()) {
 
 	setAttribute(Qt::WA_NativeWindow);
-  setAttribute(Qt::WA_DeleteOnClose, true);
+	setAttribute(Qt::WA_DeleteOnClose, true);
 
 	ui->setupUi(this);
 
 	auto displayResize = [this]() {
 		struct obs_video_info ovi;
 
-    if (obs_get_video_info(&ovi)) {
-      ResizePreview(ovi.base_width, ovi.base_height);
-    }
-			
+		if (obs_get_video_info(&ovi)) {
+			ResizePreview(ovi.base_width, ovi.base_height);
+		}
+
 		auto dpi = devicePixelRatioF();
 		ui->preview->UpdateDPI(dpi);
 	};
@@ -44,13 +45,13 @@ TestMainWindow::~TestMainWindow() {
 	obs_display_remove_draw_callback(ui->preview->GetDisplay(), TestMainWindow::RenderMain,
 					 this);
 
-  delete ui;
+	delete ui;
 }
 
 void TestMainWindow::Prepare() {
 	ProfileScope("MainWindow::Prepare");
 
-  // check if preview is enabled
+	// check if preview is enabled
 	previewEnabled = CoreApp->IsPreviewEnabled();
 	QMetaObject::invokeMethod(this, "EnablePreviewDisplay", Qt::QueuedConnection,
 				  Q_ARG(bool, true));
@@ -71,6 +72,12 @@ void TestMainWindow::Prepare() {
 	// show this window
 	show();
 	activateWindow();
+
+	// load all local sources, may be run this in a separate thread ?
+	std::thread([this]() {
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+    LoadLocalSources();
+	}).detach();
 }
 
 bool TestMainWindow::nativeEvent(const QByteArray&, void* message, qintptr*) {
@@ -175,4 +182,37 @@ void TestMainWindow::RenderMain(void* data, uint32_t, uint32_t) {
 	gs_viewport_pop();
 
 	GS_DEBUG_MARKER_END();
+}
+
+void TestMainWindow::LoadLocalSources() {
+	{
+		auto audioInputSources =
+		  core::AudioSource::GetAudioSources(core::kSourceTypeAudioCapture);
+		for (const auto& item : audioInputSources) {
+			blog(LOG_INFO, "audio capture device: %s, %s", item.Name().c_str(),
+			     item.ID().c_str());
+		}
+	}
+	{
+		auto audioOutputSources =
+		  core::AudioSource::GetAudioSources(core::kSourceTypeAudioPlayback);
+		for (const auto& item : audioOutputSources) {
+			blog(LOG_INFO, "audio playback device: %s, %s", item.Name().c_str(),
+			     item.ID().c_str());
+		}
+	}
+	{
+		auto screenSources = core::ScreenSource::GetScreenSources();
+		for (const auto& item : screenSources) {
+			blog(LOG_INFO, "screen source: %s, %s", item.Name().c_str(),
+			     item.ID().c_str());
+		}
+	}
+	{
+		auto cameraSources = core::CameraSource::GetCameraSources();
+		for (const auto& item : cameraSources) {
+			blog(LOG_INFO, "camera source: %s, %s", item.Name().c_str(),
+			     item.ID().c_str());
+		}
+	}
 }

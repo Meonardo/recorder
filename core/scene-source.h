@@ -28,16 +28,7 @@ private:
 	std::string name;
 };
 
-class Source {
-public:
-	Source(obs_source_t* data, const std::string& name) : data(data), name(name) {}
-	~Source() {}
-
-private:
-	obs_source_t* data;
-	std::string name;
-};
-
+/// not for external use, called inside this module like CoreApp
 class SceneSourceManager {
 public:
 	SceneSourceManager();
@@ -69,4 +60,99 @@ private:
 	void AddSceneItem(OBSSceneItem item);
 	void RemoveScene(OBSSource source);
 };
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+enum SourceType {
+	kSourceTypeUnknow = 1,
+	kSourceTypeAudioCapture,
+	kSourceTypeAudioPlayback,
+	kSourceTypeScreenCapture,
+	kSourceTypeCamera,
+	kSourceTypeRTSP,
+};
+
+class Source {
+public:
+	Source(const std::string& name, const std::string& id, SourceType type)
+	  : name(name),
+	    id(id),
+	    type(type),
+	    size({0, 0}) {}
+	virtual ~Source() {}
+
+	virtual const std::string& Name() const { return name; }
+	virtual SourceType Type() const { return type; }
+	virtual const std::string& ID() const { return id; }
+	virtual vec2 Size() const { return size; }
+
+	virtual obs_data_t* Properties() = 0;
+
+protected:
+	std::string name;
+	std::string id;
+	SourceType type;
+	vec2 size;
+};
+
+class AudioSource : public Source {
+public:
+	AudioSource(const std::string& name, const std::string& id, SourceType type)
+	  : Source(name, id, type) {}
+	virtual ~AudioSource() {}
+
+	static std::vector<AudioSource> GetAudioSources(SourceType type);
+
+	virtual obs_data_t* Properties() override;
+};
+
+class RTSPSource : public Source {
+public:
+	RTSPSource(const std::string& name, const std::string& url)
+	  : Source(name, url, kSourceTypeRTSP) {}
+	virtual ~RTSPSource() {}
+
+  virtual obs_data_t* Properties() override;
+};
+
+class CameraSource : public Source {
+public:
+	CameraSource(const std::string& name, const std::string& id)
+	  : Source(name, id, kSourceTypeCamera) {}
+	virtual ~CameraSource() {}
+
+	static std::vector<CameraSource> GetCameraSources();
+
+  virtual obs_data_t* Properties() override;
+
+	bool SelectResolution(uint32_t idx);
+	bool SelectFps(uint32_t idx);
+
+	const std::vector<std::string>& GetAvailableResolutions() const { return resolutions; }
+	const std::string& GetSelectedResolution() const { return selected_resolution; }
+	const std::vector<std::tuple<std::string, int64_t>>& GetAvailableFps() const { return fps; }
+	const std::tuple<std::string, int64_t>& GetSelectedFps() const { return selected_fps; }
+
+private:
+	std::vector<std::string> resolutions;
+	// current selected resolution(default is the first element in the vector(resolutions_))
+	std::string selected_resolution;
+	// all available fps, for example: (Match Output FPS, -1), (Highest FPS, 0), (30, 333333)....
+	std::vector<std::tuple<std::string, int64_t>> fps;
+	std::tuple<std::string, int64_t> selected_fps;
+};
+
+class ScreenSource : public Source {
+public:
+	ScreenSource(const std::string& name, const std::string& id)
+	  : Source(name, id, kSourceTypeScreenCapture) {}
+	virtual ~ScreenSource() {}
+
+	static std::vector<ScreenSource> GetScreenSources();
+
+  virtual obs_data_t* Properties() override;
+};
+
 } // namespace core

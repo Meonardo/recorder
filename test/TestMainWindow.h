@@ -42,4 +42,6 @@ private:
   void ResizePreview(uint32_t cx, uint32_t cy);
 
   static void RenderMain(void* data, uint32_t cx, uint32_t cy);
+
+  void LoadLocalSources();
 };
