@@ -72,7 +72,7 @@ static void HandleSampleRate(obs_property_t* prop, const char* id) {
 	}
 
 #if TEST
-	uint32_t sampleRate = config_get_uint(CoreApp->BasicConfig(), "Audio", "SampleRate");
+	uint32_t sampleRate = config_get_uint(CoreApp->GetBasicConfig(), "Audio", "SampleRate");
 #else
 	auto main = reinterpret_cast<OBSMainWindow*>(App()->GetMainWindow());
 	if (!main) {

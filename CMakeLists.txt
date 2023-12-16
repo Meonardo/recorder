@@ -43,6 +43,8 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/core/output.h
   ${CMAKE_CURRENT_SOURCE_DIR}/core/preview.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/preview.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/scene-source.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/scene-source.h
   ${CMAKE_CURRENT_SOURCE_DIR}/core/defines.h
 
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.h

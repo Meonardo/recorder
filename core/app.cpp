@@ -47,7 +47,7 @@ static void delete_oldest_file(bool has_prefix, const char* location) {
 	struct os_dirent* entry;
 
 	unsigned int maxLogs =
-	  (unsigned int)config_get_uint(CoreApp->GlobalConfig(), "General", "MaxLogs");
+	  (unsigned int)config_get_uint(CoreApp->GetGlobalConfig(), "General", "MaxLogs");
 
 	os_dir_t* dir = os_opendir(logDir);
 	if (dir) {
@@ -868,7 +868,7 @@ static obs_data_t* GenerateSaveData(obs_data_array_t* sceneOrder,
 	const char* programName = obs_source_get_name(curProgramScene);
 
 	const char* sceneCollection =
-	  config_get_string(CoreApp->GlobalConfig(), "Basic", "SceneCollection");
+	  config_get_string(CoreApp->GetGlobalConfig(), "Basic", "SceneCollection");
 
 	obs_data_set_string(saveData, "current_scene", sceneName);
 	obs_data_set_string(saveData, "current_program_scene", programName);
@@ -1361,7 +1361,7 @@ bool App::OBSInit() {
   application->OnConfigureFinished();
 
 	const char* sceneCollection =
-	  config_get_string(GlobalConfig(), "Basic", "SceneCollectionFile");
+	  config_get_string(GetGlobalConfig(), "Basic", "SceneCollectionFile");
 	char savePath[1024];
 	char fileName[1024];
 	int ret;
@@ -1445,7 +1445,7 @@ bool App::OBSInit() {
 
 	loaded = true;
 
-	previewEnabled = config_get_bool(GlobalConfig(), "BasicWindow", "PreviewEnabled");
+	previewEnabled = config_get_bool(GetGlobalConfig(), "BasicWindow", "PreviewEnabled");
 
 	// notify UI to show preview
 
@@ -1454,10 +1454,10 @@ bool App::OBSInit() {
 
 	// begin to render
 
-	bool first_run = config_get_bool(GlobalConfig(), "General", "FirstRun");
+	bool first_run = config_get_bool(GetGlobalConfig(), "General", "FirstRun");
 	if (!first_run) {
-		config_set_bool(GlobalConfig(), "General", "FirstRun", true);
-		config_save_safe(GlobalConfig(), "tmp", nullptr);
+		config_set_bool(GetGlobalConfig(), "General", "FirstRun", true);
+		config_save_safe(GetGlobalConfig(), "tmp", nullptr);
 	}
 
 	if (api)
@@ -1495,7 +1495,7 @@ bool App::InitBasicConfig() {
 	}
 
 	if (config_get_string(basicConfig, "General", "Name") == nullptr) {
-		const char* curName = config_get_string(GlobalConfig(), "Basic", "Profile");
+		const char* curName = config_get_string(GetGlobalConfig(), "Basic", "Profile");
 
 		config_set_string(basicConfig, "General", "Name", curName);
 		basicConfig.SaveSafe("tmp");
@@ -1508,7 +1508,7 @@ bool App::InitBasicConfigDefaults() {
 	uint32_t cx = 1920;
 	uint32_t cy = 1080;
 
-	bool oldResolutionDefaults = config_get_bool(GlobalConfig(), "General", "Pre19Defaults");
+	bool oldResolutionDefaults = config_get_bool(GetGlobalConfig(), "General", "Pre19Defaults");
 	/* use 1920x1080 for new default base res if main monitor is above
    * 1920x1080, but don't apply for people from older builds -- only to
    * new users */
@@ -1725,13 +1725,13 @@ bool App::InitBasicConfigDefaults() {
 	config_set_default_double(basicConfig, "Audio", "MeterDecayRate", 23.53);
 	config_set_default_uint(basicConfig, "Audio", "PeakMeterType", 0);
 
-	config_set_bool(GlobalConfig(), "BasicWindow", "HideOBSWindowsFromCapture", true);
+	config_set_bool(GetGlobalConfig(), "BasicWindow", "HideOBSWindowsFromCapture", true);
 
 	return true;
 }
 
 void App::InitBasicConfigDefaults2() {
-	bool oldEncDefaults = config_get_bool(GlobalConfig(), "General", "Pre23Defaults");
+	bool oldEncDefaults = config_get_bool(GetGlobalConfig(), "General", "Pre23Defaults");
 	bool useNV = EncoderAvailable("ffmpeg_nvenc") && !oldEncDefaults;
 
 	config_set_default_string(basicConfig, "SimpleOutput", "StreamEncoder",
@@ -1754,7 +1754,7 @@ void App::InitBasicConfigDefaults2() {
 
 int App::GetProfilePath(char* path, size_t size, const char* file) const {
 	char profiles_path[512];
-	const char* profile = config_get_string(GlobalConfig(), "Basic", "ProfileDir");
+	const char* profile = config_get_string(GetGlobalConfig(), "Basic", "ProfileDir");
 	int ret;
 
 	if (!profile)
@@ -1814,7 +1814,7 @@ int App::ResetVideo() {
 	ovi.output_format = GetVideoFormatFromName(colorFormat);
 	ovi.colorspace = GetVideoColorSpaceFromName(colorSpace);
 	ovi.range = astrcmpi(colorRange, "Full") == 0 ? VIDEO_RANGE_FULL : VIDEO_RANGE_PARTIAL;
-	ovi.adapter = config_get_uint(GlobalConfig(), "Video", "AdapterIdx");
+	ovi.adapter = config_get_uint(GetGlobalConfig(), "Video", "AdapterIdx");
 	ovi.gpu_conversion = true;
 	ovi.scale_type = GetScaleType(basicConfig);
 
@@ -1873,7 +1873,7 @@ bool App::ResetAudio() {
 		ai.speakers = SPEAKERS_STEREO;
 
 	bool lowLatencyAudioBuffering =
-	  config_get_bool(GlobalConfig(), "Audio", "LowLatencyAudioBuffering");
+	  config_get_bool(GetGlobalConfig(), "Audio", "LowLatencyAudioBuffering");
 	if (lowLatencyAudioBuffering) {
 		ai.max_buffering_ms = 20;
 		ai.fixed_buffering = true;
@@ -2196,7 +2196,7 @@ void App::LoadData(obs_data_t* data, const char* file) {
 	const char* transitionName = obs_data_get_string(data, "current_transition");
 
 	const char* curSceneCollection =
-	  config_get_string(GlobalConfig(), "Basic", "SceneCollection");
+	  config_get_string(GetGlobalConfig(), "Basic", "SceneCollection");
 
 	obs_data_set_default_string(data, "name", curSceneCollection);
 
@@ -2233,8 +2233,8 @@ void App::LoadData(obs_data_t* data, const char* file) {
 	std::string file_base = strrchr(file, '/') + 1;
 	file_base.erase(file_base.size() - 5, 5);
 
-	config_set_string(GlobalConfig(), "Basic", "SceneCollection", name);
-	config_set_string(GlobalConfig(), "Basic", "SceneCollectionFile", file_base.c_str());
+	config_set_string(GetGlobalConfig(), "Basic", "SceneCollection", name);
+	config_set_string(GetGlobalConfig(), "Basic", "SceneCollectionFile", file_base.c_str());
 
 	/* ---------------------- */
 
@@ -2392,7 +2392,7 @@ void App::SaveProjectDeferred() {
 	projectChanged = false;
 
 	const char* sceneCollection =
-	  config_get_string(GlobalConfig(), "Basic", "SceneCollectionFile");
+	  config_get_string(GetGlobalConfig(), "Basic", "SceneCollectionFile");
 
 	char savePath[1024];
 	char fileName[1024];

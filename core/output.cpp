@@ -396,11 +396,11 @@ const char* get_simple_output_encoder(const char* encoder) {
 
 void SimpleOutput::LoadRecordingPreset() {
 	const char* quality =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecQuality");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecQuality");
 	const char* encoder =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecEncoder");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecEncoder");
 	const char* audio_encoder =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecAudioEncoder");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecAudioEncoder");
 
 	videoEncoder = encoder;
 	videoQuality = quality;
@@ -460,9 +460,9 @@ void SimpleOutput::LoadRecordingPreset() {
 
 SimpleOutput::SimpleOutput(OutputCallback* callback) : BasicOutputHandler(callback) {
 	const char* encoder =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "StreamEncoder");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "StreamEncoder");
 	const char* audio_encoder =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "StreamAudioEncoder");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "StreamAudioEncoder");
 
 	LoadStreamingPreset_Lossy(get_simple_output_encoder(encoder));
 
@@ -492,11 +492,11 @@ SimpleOutput::SimpleOutput(OutputCallback* callback) : BasicOutputHandler(callba
 
 	if (!ffmpegOutput) {
 		bool useReplayBuffer =
-		  config_get_bool(CoreApp->BasicConfig(), "SimpleOutput", "RecRB");
+		  config_get_bool(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRB");
 		if (useReplayBuffer) {
 			OBSDataAutoRelease hotkey;
 			const char* str =
-			  config_get_string(CoreApp->BasicConfig(), "Hotkeys", "ReplayBuffer");
+			  config_get_string(CoreApp->GetBasicConfig(), "Hotkeys", "ReplayBuffer");
 			if (str)
 				hotkey = obs_data_create_from_json(str);
 			else
@@ -535,8 +535,8 @@ SimpleOutput::SimpleOutput(OutputCallback* callback) : BasicOutputHandler(callba
 
 int SimpleOutput::GetAudioBitrate() const {
 	const char* audio_encoder =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "StreamAudioEncoder");
-	int bitrate = (int)config_get_uint(CoreApp->BasicConfig(), "SimpleOutput", "ABitrate");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "StreamAudioEncoder");
+	int bitrate = (int)config_get_uint(CoreApp->GetBasicConfig(), "SimpleOutput", "ABitrate");
 
 	if (strcmp(audio_encoder, "opus") == 0)
 		return FindClosestAvailableSimpleOpusBitrate(bitrate);
@@ -548,15 +548,15 @@ void SimpleOutput::Update() {
 	OBSDataAutoRelease videoSettings = obs_data_create();
 	OBSDataAutoRelease audioSettings = obs_data_create();
 
-	auto videoBitrate = config_get_uint(CoreApp->BasicConfig(), "SimpleOutput", "VBitrate");
+	auto videoBitrate = config_get_uint(CoreApp->GetBasicConfig(), "SimpleOutput", "VBitrate");
 	auto audioBitrate = GetAudioBitrate();
-	bool advanced = config_get_bool(CoreApp->BasicConfig(), "SimpleOutput", "UseAdvanced");
+	bool advanced = config_get_bool(CoreApp->GetBasicConfig(), "SimpleOutput", "UseAdvanced");
 	bool enforceBitrate =
-	  !config_get_bool(CoreApp->BasicConfig(), "Stream1", "IgnoreRecommended");
+	  !config_get_bool(CoreApp->GetBasicConfig(), "Stream1", "IgnoreRecommended");
 	const char* custom =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "x264Settings");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "x264Settings");
 	const char* encoder =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "StreamEncoder");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "StreamEncoder");
 	const char* presetType;
 	const char* preset;
 
@@ -592,7 +592,7 @@ void SimpleOutput::Update() {
 		presetType = "Preset";
 	}
 
-	preset = config_get_string(CoreApp->BasicConfig(), "SimpleOutput", presetType);
+	preset = config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", presetType);
 	obs_data_set_string(
 	  videoSettings, (strcmp(presetType, "NVENCPreset2") == 0) ? "preset2" : "preset", preset);
 
@@ -634,11 +634,11 @@ void SimpleOutput::UpdateRecordingAudioSettings() {
 	obs_data_set_int(settings, "bitrate", 192);
 	obs_data_set_string(settings, "rate_control", "CBR");
 
-	auto tracks = config_get_int(CoreApp->BasicConfig(), "SimpleOutput", "RecTracks");
+	auto tracks = config_get_int(CoreApp->GetBasicConfig(), "SimpleOutput", "RecTracks");
 	const char* recFormat =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecFormat2");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecFormat2");
 	const char* quality =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecQuality");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecQuality");
 	bool flv = strcmp(recFormat, "flv") == 0;
 
 	if (flv || strcmp(quality, "Stream") == 0) {
@@ -655,8 +655,8 @@ void SimpleOutput::UpdateRecordingAudioSettings() {
 #define CROSS_DIST_CUTOFF 2000.0
 
 int SimpleOutput::CalcCRF(int crf) {
-	auto cx = config_get_uint(CoreApp->BasicConfig(), "Video", "OutputCX");
-	auto cy = config_get_uint(CoreApp->BasicConfig(), "Video", "OutputCY");
+	auto cx = config_get_uint(CoreApp->GetBasicConfig(), "Video", "OutputCX");
+	auto cy = config_get_uint(CoreApp->GetBasicConfig(), "Video", "OutputCY");
 	double fCX = double(cx);
 	double fCY = double(cy);
 
@@ -810,9 +810,9 @@ inline void SimpleOutput::SetupOutputs() {
 	obs_encoder_set_video(videoStreaming, obs_get_video());
 	obs_encoder_set_audio(audioStreaming, obs_get_audio());
 	obs_encoder_set_audio(audioArchive, obs_get_audio());
-	auto tracks = config_get_int(CoreApp->BasicConfig(), "SimpleOutput", "RecTracks");
+	auto tracks = config_get_int(CoreApp->GetBasicConfig(), "SimpleOutput", "RecTracks");
 	const char* recFormat =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecFormat2");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecFormat2");
 	bool flv = strcmp(recFormat, "flv") == 0;
 
 	if (usingRecordingPreset) {
@@ -913,10 +913,10 @@ static void clear_archive_encoder(obs_output_t* output, const char* expected_nam
 }
 
 void SimpleOutput::SetupVodTrack(obs_service_t* service) {
-	bool advanced = config_get_bool(CoreApp->BasicConfig(), "SimpleOutput", "UseAdvanced");
-	bool enable = config_get_bool(CoreApp->BasicConfig(), "SimpleOutput", "VodTrackEnabled");
+	bool advanced = config_get_bool(CoreApp->GetBasicConfig(), "SimpleOutput", "UseAdvanced");
+	bool enable = config_get_bool(CoreApp->GetBasicConfig(), "SimpleOutput", "VodTrackEnabled");
 	bool enableForCustomServer =
-	  config_get_bool(CoreApp->GlobalConfig(), "General", "EnableCustomServerVodTrack");
+	  config_get_bool(CoreApp->GetGlobalConfig(), "General", "EnableCustomServerVodTrack");
 
 	OBSDataAutoRelease settings = obs_service_get_settings(service);
 	const char* name = obs_data_get_string(settings, "service");
@@ -934,21 +934,21 @@ void SimpleOutput::SetupVodTrack(obs_service_t* service) {
 }
 
 bool SimpleOutput::StartStreaming(obs_service_t* service) {
-	bool reconnect = config_get_bool(CoreApp->BasicConfig(), "Output", "Reconnect");
-	auto retryDelay = config_get_uint(CoreApp->BasicConfig(), "Output", "RetryDelay");
-	auto maxRetries = config_get_uint(CoreApp->BasicConfig(), "Output", "MaxRetries");
-	bool useDelay = config_get_bool(CoreApp->BasicConfig(), "Output", "DelayEnable");
-	auto delaySec = config_get_int(CoreApp->BasicConfig(), "Output", "DelaySec");
-	bool preserveDelay = config_get_bool(CoreApp->BasicConfig(), "Output", "DelayPreserve");
-	const char* bindIP = config_get_string(CoreApp->BasicConfig(), "Output", "BindIP");
-	const char* ipFamily = config_get_string(CoreApp->BasicConfig(), "Output", "IPFamily");
+	bool reconnect = config_get_bool(CoreApp->GetBasicConfig(), "Output", "Reconnect");
+	auto retryDelay = config_get_uint(CoreApp->GetBasicConfig(), "Output", "RetryDelay");
+	auto maxRetries = config_get_uint(CoreApp->GetBasicConfig(), "Output", "MaxRetries");
+	bool useDelay = config_get_bool(CoreApp->GetBasicConfig(), "Output", "DelayEnable");
+	auto delaySec = config_get_int(CoreApp->GetBasicConfig(), "Output", "DelaySec");
+	bool preserveDelay = config_get_bool(CoreApp->GetBasicConfig(), "Output", "DelayPreserve");
+	const char* bindIP = config_get_string(CoreApp->GetBasicConfig(), "Output", "BindIP");
+	const char* ipFamily = config_get_string(CoreApp->GetBasicConfig(), "Output", "IPFamily");
 #ifdef _WIN32
 	bool enableNewSocketLoop =
-	  config_get_bool(CoreApp->BasicConfig(), "Output", "NewSocketLoopEnable");
+	  config_get_bool(CoreApp->GetBasicConfig(), "Output", "NewSocketLoopEnable");
 	bool enableLowLatencyMode =
-	  config_get_bool(CoreApp->BasicConfig(), "Output", "LowLatencyEnable");
+	  config_get_bool(CoreApp->GetBasicConfig(), "Output", "LowLatencyEnable");
 #endif
-	bool enableDynBitrate = config_get_bool(CoreApp->BasicConfig(), "Output", "DynamicBitrate");
+	bool enableDynBitrate = config_get_bool(CoreApp->GetBasicConfig(), "Output", "DynamicBitrate");
 
 	OBSDataAutoRelease settings = obs_data_create();
 	obs_data_set_string(settings, "bind_ip", bindIP);
@@ -989,13 +989,13 @@ bool SimpleOutput::StartStreaming(obs_service_t* service) {
 
 void SimpleOutput::UpdateRecording() {
 	const char* recFormat =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecFormat2");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecFormat2");
 	bool flv = strcmp(recFormat, "flv") == 0;
-	auto tracks = config_get_int(CoreApp->BasicConfig(), "SimpleOutput", "RecTracks");
+	auto tracks = config_get_int(CoreApp->GetBasicConfig(), "SimpleOutput", "RecTracks");
 	int idx = 0;
 	int idx2 = 0;
 	const char* quality =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecQuality");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecQuality");
 
 	if (replayBufferActive || recordingActive)
 		return;
@@ -1041,23 +1041,23 @@ void SimpleOutput::UpdateRecording() {
 }
 
 bool SimpleOutput::ConfigureRecording(bool updateReplayBuffer) {
-	const char* path = config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "FilePath");
+	const char* path = config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "FilePath");
 	const char* format =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecFormat2");
-	const char* mux = config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "MuxerCustom");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecFormat2");
+	const char* mux = config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "MuxerCustom");
 	bool noSpace =
-	  config_get_bool(CoreApp->BasicConfig(), "SimpleOutput", "FileNameWithoutSpace");
+	  config_get_bool(CoreApp->GetBasicConfig(), "SimpleOutput", "FileNameWithoutSpace");
 	const char* filenameFormat =
-	  config_get_string(CoreApp->BasicConfig(), "Output", "FilenameFormatting");
+	  config_get_string(CoreApp->GetBasicConfig(), "Output", "FilenameFormatting");
 	bool overwriteIfExists =
-	  config_get_bool(CoreApp->BasicConfig(), "Output", "OverwriteIfExists");
+	  config_get_bool(CoreApp->GetBasicConfig(), "Output", "OverwriteIfExists");
 	const char* rbPrefix =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecRBPrefix");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRBPrefix");
 	const char* rbSuffix =
-	  config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecRBSuffix");
-	auto rbTime = config_get_int(CoreApp->BasicConfig(), "SimpleOutput", "RecRBTime");
-	auto rbSize = config_get_int(CoreApp->BasicConfig(), "SimpleOutput", "RecRBSize");
-	auto tracks = config_get_int(CoreApp->BasicConfig(), "SimpleOutput", "RecTracks");
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRBSuffix");
+	auto rbTime = config_get_int(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRBTime");
+	auto rbSize = config_get_int(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRBSize");
+	auto tracks = config_get_int(CoreApp->GetBasicConfig(), "SimpleOutput", "RecTracks");
 
 	bool is_fragmented = strncmp(format, "fragmented", 10) == 0;
 	bool is_lossless = videoQuality == "Lossless";
@@ -1213,7 +1213,7 @@ static OBSData GetDataFromJsonFile(const char* jsonFile) {
 	char fullPath[512];
 	OBSDataAutoRelease data = nullptr;
 
-	const char* profile = config_get_string(CoreApp->GlobalConfig(), "Basic", "ProfileDir");
+	const char* profile = config_get_string(CoreApp->GetGlobalConfig(), "Basic", "ProfileDir");
 	int ret = GetProfilePath(fullPath, sizeof(fullPath), jsonFile, profile);
 	if (ret > 0) {
 		BPtr<char> jsonData = os_quick_read_utf8_file(fullPath);
@@ -1250,14 +1250,14 @@ static void translate_macvth264_encoder(const char*& encoder) {
 #endif
 
 AdvancedOutput::AdvancedOutput(OutputCallback* cb) : BasicOutputHandler(cb) {
-	const char* recType = config_get_string(CoreApp->BasicConfig(), "AdvOut", "RecType");
-	const char* streamEncoder = config_get_string(CoreApp->BasicConfig(), "AdvOut", "Encoder");
+	const char* recType = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecType");
+	const char* streamEncoder = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "Encoder");
 	const char* streamAudioEncoder =
-	  config_get_string(CoreApp->BasicConfig(), "AdvOut", "AudioEncoder");
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "AudioEncoder");
 	const char* recordEncoder =
-	  config_get_string(CoreApp->BasicConfig(), "AdvOut", "RecEncoder");
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecEncoder");
 	const char* recAudioEncoder =
-	  config_get_string(CoreApp->BasicConfig(), "AdvOut", "RecAudioEncoder");
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecAudioEncoder");
 #ifdef __APPLE__
 	translate_macvth264_encoder(streamEncoder);
 	translate_macvth264_encoder(recordEncoder);
@@ -1265,7 +1265,7 @@ AdvancedOutput::AdvancedOutput(OutputCallback* cb) : BasicOutputHandler(cb) {
 
 	ffmpegOutput = astrcmpi(recType, "FFmpeg") == 0;
 	ffmpegRecording = ffmpegOutput &&
-			  config_get_bool(CoreApp->BasicConfig(), "AdvOut", "FFOutputToFile");
+			  config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "FFOutputToFile");
 	useStreamEncoder = astrcmpi(recordEncoder, "none") == 0;
 	useStreamAudioEncoder = astrcmpi(recAudioEncoder, "none") == 0;
 
@@ -1279,11 +1279,11 @@ AdvancedOutput::AdvancedOutput(OutputCallback* cb) : BasicOutputHandler(cb) {
 			throw "Failed to create recording FFmpeg output "
 			      "(advanced output)";
 	} else {
-		bool useReplayBuffer = config_get_bool(CoreApp->BasicConfig(), "AdvOut", "RecRB");
+		bool useReplayBuffer = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "RecRB");
 		if (useReplayBuffer) {
 			OBSDataAutoRelease hotkey;
 			const char* str =
-			  config_get_string(CoreApp->BasicConfig(), "Hotkeys", "ReplayBuffer");
+			  config_get_string(CoreApp->GetBasicConfig(), "Hotkeys", "ReplayBuffer");
 			if (str)
 				hotkey = obs_data_create_from_json(str);
 			else
@@ -1351,7 +1351,7 @@ AdvancedOutput::AdvancedOutput(OutputCallback* cb) : BasicOutputHandler(cb) {
 	}
 
 	std::string id;
-	auto streamTrack = config_get_int(CoreApp->BasicConfig(), "AdvOut", "TrackIndex") - 1;
+	auto streamTrack = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "TrackIndex") - 1;
 	streamAudioEnc = obs_audio_encoder_create(streamAudioEncoder, "adv_stream_audio", nullptr,
 						  streamTrack, nullptr);
 	if (!streamAudioEnc)
@@ -1360,7 +1360,7 @@ AdvancedOutput::AdvancedOutput(OutputCallback* cb) : BasicOutputHandler(cb) {
 	obs_encoder_release(streamAudioEnc);
 
 	id = "";
-	auto vodTrack = config_get_int(CoreApp->BasicConfig(), "AdvOut", "VodTrackIndex") - 1;
+	auto vodTrack = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "VodTrackIndex") - 1;
 	streamArchiveEnc = obs_audio_encoder_create(streamAudioEncoder, ADV_ARCHIVE_NAME, nullptr,
 						    vodTrack, nullptr);
 	if (!streamArchiveEnc)
@@ -1380,11 +1380,11 @@ AdvancedOutput::AdvancedOutput(OutputCallback* cb) : BasicOutputHandler(cb) {
 
 void AdvancedOutput::UpdateStreamSettings() {
 	bool applyServiceSettings =
-	  config_get_bool(CoreApp->BasicConfig(), "AdvOut", "ApplyServiceSettings");
+	  config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "ApplyServiceSettings");
 	bool enforceBitrate =
-	  !config_get_bool(CoreApp->BasicConfig(), "Stream1", "IgnoreRecommended");
-	bool dynBitrate = config_get_bool(CoreApp->BasicConfig(), "Output", "DynamicBitrate");
-	const char* streamEncoder = config_get_string(CoreApp->BasicConfig(), "AdvOut", "Encoder");
+	  !config_get_bool(CoreApp->GetBasicConfig(), "Stream1", "IgnoreRecommended");
+	bool dynBitrate = config_get_bool(CoreApp->GetBasicConfig(), "Output", "DynamicBitrate");
+	const char* streamEncoder = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "Encoder");
 
 	OBSData settings = GetDataFromJsonFile("streamEncoder.json");
 	ApplyEncoderDefaults(settings, videoStreaming);
@@ -1446,8 +1446,8 @@ static inline bool ServiceSupportsVodTrack(const char* service) {
 }
 
 inline void AdvancedOutput::SetupStreaming() {
-	bool rescale = config_get_bool(CoreApp->BasicConfig(), "AdvOut", "Rescale");
-	const char* rescaleRes = config_get_string(CoreApp->BasicConfig(), "AdvOut", "RescaleRes");
+	bool rescale = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "Rescale");
+	const char* rescaleRes = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RescaleRes");
 	unsigned int cx = 0;
 	unsigned int cy = 0;
 
@@ -1470,22 +1470,22 @@ inline void AdvancedOutput::SetupStreaming() {
 }
 
 inline void AdvancedOutput::SetupRecording() {
-	const char* path = config_get_string(CoreApp->BasicConfig(), "AdvOut", "RecFilePath");
-	const char* mux = config_get_string(CoreApp->BasicConfig(), "AdvOut", "RecMuxerCustom");
-	bool rescale = config_get_bool(CoreApp->BasicConfig(), "AdvOut", "RecRescale");
+	const char* path = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecFilePath");
+	const char* mux = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecMuxerCustom");
+	bool rescale = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "RecRescale");
 	const char* rescaleRes =
-	  config_get_string(CoreApp->BasicConfig(), "AdvOut", "RecRescaleRes");
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecRescaleRes");
 
-	const char* recFormat = config_get_string(CoreApp->BasicConfig(), "AdvOut", "RecFormat2");
+	const char* recFormat = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecFormat2");
 
 	bool is_fragmented = strncmp(recFormat, "fragmented", 10) == 0;
 	bool flv = strcmp(recFormat, "flv") == 0;
 
 	int64_t tracks;
 	if (flv)
-		tracks = config_get_int(CoreApp->BasicConfig(), "AdvOut", "FLVTrack");
+		tracks = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FLVTrack");
 	else
-		tracks = config_get_int(CoreApp->BasicConfig(), "AdvOut", "RecTracks");
+		tracks = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "RecTracks");
 
 	OBSDataAutoRelease settings = obs_data_create();
 	unsigned int cx = 0;
@@ -1497,7 +1497,7 @@ inline void AdvancedOutput::SetupRecording() {
    * configurations might still have this configured and we don't want to
    * just break them. */
 	if (tracks == 0)
-		tracks = config_get_int(CoreApp->BasicConfig(), "AdvOut", "TrackIndex");
+		tracks = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "TrackIndex");
 
 	if (useStreamEncoder) {
 		obs_output_set_video_encoder(fileOutput, videoStreaming);
@@ -1556,24 +1556,24 @@ inline void AdvancedOutput::SetupRecording() {
 }
 
 inline void AdvancedOutput::SetupFFmpeg() {
-	const char* url = config_get_string(CoreApp->BasicConfig(), "AdvOut", "FFURL");
-	auto vBitrate = config_get_int(CoreApp->BasicConfig(), "AdvOut", "FFVBitrate");
-	auto gopSize = config_get_int(CoreApp->BasicConfig(), "AdvOut", "FFVGOPSize");
-	bool rescale = config_get_bool(CoreApp->BasicConfig(), "AdvOut", "FFRescale");
+	const char* url = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFURL");
+	auto vBitrate = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FFVBitrate");
+	auto gopSize = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FFVGOPSize");
+	bool rescale = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "FFRescale");
 	const char* rescaleRes =
-	  config_get_string(CoreApp->BasicConfig(), "AdvOut", "FFRescaleRes");
-	const char* formatName = config_get_string(CoreApp->BasicConfig(), "AdvOut", "FFFormat");
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFRescaleRes");
+	const char* formatName = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFFormat");
 	const char* mimeType =
-	  config_get_string(CoreApp->BasicConfig(), "AdvOut", "FFFormatMimeType");
-	const char* muxCustom = config_get_string(CoreApp->BasicConfig(), "AdvOut", "FFMCustom");
-	const char* vEncoder = config_get_string(CoreApp->BasicConfig(), "AdvOut", "FFVEncoder");
-	auto vEncoderId = config_get_int(CoreApp->BasicConfig(), "AdvOut", "FFVEncoderId");
-	const char* vEncCustom = config_get_string(CoreApp->BasicConfig(), "AdvOut", "FFVCustom");
-	auto aBitrate = config_get_int(CoreApp->BasicConfig(), "AdvOut", "FFABitrate");
-	auto aMixes = config_get_int(CoreApp->BasicConfig(), "AdvOut", "FFAudioMixes");
-	const char* aEncoder = config_get_string(CoreApp->BasicConfig(), "AdvOut", "FFAEncoder");
-	auto aEncoderId = config_get_int(CoreApp->BasicConfig(), "AdvOut", "FFAEncoderId");
-	const char* aEncCustom = config_get_string(CoreApp->BasicConfig(), "AdvOut", "FFACustom");
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFFormatMimeType");
+	const char* muxCustom = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFMCustom");
+	const char* vEncoder = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFVEncoder");
+	auto vEncoderId = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FFVEncoderId");
+	const char* vEncCustom = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFVCustom");
+	auto aBitrate = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FFABitrate");
+	auto aMixes = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FFAudioMixes");
+	const char* aEncoder = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFAEncoder");
+	auto aEncoderId = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FFAEncoderId");
+	const char* aEncCustom = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFACustom");
 	OBSDataAutoRelease settings = obs_data_create();
 
 	obs_data_set_string(settings, "url", url);
@@ -1613,15 +1613,15 @@ static inline void SetEncoderName(obs_encoder_t* encoder, const char* name,
 
 inline void AdvancedOutput::UpdateAudioSettings() {
 	bool applyServiceSettings =
-	  config_get_bool(CoreApp->BasicConfig(), "AdvOut", "ApplyServiceSettings");
+	  config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "ApplyServiceSettings");
 	bool enforceBitrate =
-	  !config_get_bool(CoreApp->BasicConfig(), "Stream1", "IgnoreRecommended");
-	auto streamTrackIndex = config_get_int(CoreApp->BasicConfig(), "AdvOut", "TrackIndex");
-	auto vodTrackIndex = config_get_int(CoreApp->BasicConfig(), "AdvOut", "VodTrackIndex");
+	  !config_get_bool(CoreApp->GetBasicConfig(), "Stream1", "IgnoreRecommended");
+	auto streamTrackIndex = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "TrackIndex");
+	auto vodTrackIndex = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "VodTrackIndex");
 	const char* audioEncoder =
-	  config_get_string(CoreApp->BasicConfig(), "AdvOut", "AudioEncoder");
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "AudioEncoder");
 	const char* recAudioEncoder =
-	  config_get_string(CoreApp->BasicConfig(), "AdvOut", "RecAudioEncoder");
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecAudioEncoder");
 	OBSDataAutoRelease settings[MAX_AUDIO_MIXES];
 
 	for (size_t i = 0; i < MAX_AUDIO_MIXES; i++) {
@@ -1629,7 +1629,7 @@ inline void AdvancedOutput::UpdateAudioSettings() {
 		cfg_name += std::to_string((int)i + 1);
 		cfg_name += "Name";
 		const char* name =
-		  config_get_string(CoreApp->BasicConfig(), "AdvOut", cfg_name.c_str());
+		  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", cfg_name.c_str());
 
 		std::string def_name = "Track";
 		def_name += std::to_string((int)i + 1);
@@ -1685,16 +1685,16 @@ int AdvancedOutput::GetAudioBitrate(size_t i, const char* id) const {
 	  "Track1Bitrate", "Track2Bitrate", "Track3Bitrate",
 	  "Track4Bitrate", "Track5Bitrate", "Track6Bitrate",
 	};
-	int bitrate = (int)config_get_uint(CoreApp->BasicConfig(), "AdvOut", names[i]);
+	int bitrate = (int)config_get_uint(CoreApp->GetBasicConfig(), "AdvOut", names[i]);
 	return FindClosestAvailableAudioBitrate(id, bitrate);
 }
 
 inline void AdvancedOutput::SetupVodTrack(obs_service_t* service) {
-	int streamTrack = config_get_int(CoreApp->BasicConfig(), "AdvOut", "TrackIndex");
-	bool vodTrackEnabled = config_get_bool(CoreApp->BasicConfig(), "AdvOut", "VodTrackEnabled");
-	int vodTrackIndex = config_get_int(CoreApp->BasicConfig(), "AdvOut", "VodTrackIndex");
+	int streamTrack = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "TrackIndex");
+	bool vodTrackEnabled = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "VodTrackEnabled");
+	int vodTrackIndex = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "VodTrackIndex");
 	bool enableForCustomServer =
-	  config_get_bool(CoreApp->GlobalConfig(), "General", "EnableCustomServerVodTrack");
+	  config_get_bool(CoreApp->GetGlobalConfig(), "General", "EnableCustomServerVodTrack");
 
 	const char* id = obs_service_get_id(service);
 	if (strcmp(id, "rtmp_custom") == 0) {
@@ -1766,21 +1766,21 @@ bool AdvancedOutput::SetupStreaming(obs_service_t* service) {
 bool AdvancedOutput::StartStreaming(obs_service_t* service) {
 	obs_output_set_service(streamOutput, service);
 
-	bool reconnect = config_get_bool(CoreApp->BasicConfig(), "Output", "Reconnect");
-	auto retryDelay = config_get_int(CoreApp->BasicConfig(), "Output", "RetryDelay");
-	auto maxRetries = config_get_int(CoreApp->BasicConfig(), "Output", "MaxRetries");
-	bool useDelay = config_get_bool(CoreApp->BasicConfig(), "Output", "DelayEnable");
-	auto delaySec = config_get_int(CoreApp->BasicConfig(), "Output", "DelaySec");
-	bool preserveDelay = config_get_bool(CoreApp->BasicConfig(), "Output", "DelayPreserve");
-	const char* bindIP = config_get_string(CoreApp->BasicConfig(), "Output", "BindIP");
-	const char* ipFamily = config_get_string(CoreApp->BasicConfig(), "Output", "IPFamily");
+	bool reconnect = config_get_bool(CoreApp->GetBasicConfig(), "Output", "Reconnect");
+	auto retryDelay = config_get_int(CoreApp->GetBasicConfig(), "Output", "RetryDelay");
+	auto maxRetries = config_get_int(CoreApp->GetBasicConfig(), "Output", "MaxRetries");
+	bool useDelay = config_get_bool(CoreApp->GetBasicConfig(), "Output", "DelayEnable");
+	auto delaySec = config_get_int(CoreApp->GetBasicConfig(), "Output", "DelaySec");
+	bool preserveDelay = config_get_bool(CoreApp->GetBasicConfig(), "Output", "DelayPreserve");
+	const char* bindIP = config_get_string(CoreApp->GetBasicConfig(), "Output", "BindIP");
+	const char* ipFamily = config_get_string(CoreApp->GetBasicConfig(), "Output", "IPFamily");
 #ifdef _WIN32
 	bool enableNewSocketLoop =
-	  config_get_bool(CoreApp->BasicConfig(), "Output", "NewSocketLoopEnable");
+	  config_get_bool(CoreApp->GetBasicConfig(), "Output", "NewSocketLoopEnable");
 	bool enableLowLatencyMode =
-	  config_get_bool(CoreApp->BasicConfig(), "Output", "LowLatencyEnable");
+	  config_get_bool(CoreApp->GetBasicConfig(), "Output", "LowLatencyEnable");
 #endif
-	bool enableDynBitrate = config_get_bool(CoreApp->BasicConfig(), "Output", "DynamicBitrate");
+	bool enableDynBitrate = config_get_bool(CoreApp->GetBasicConfig(), "Output", "DynamicBitrate");
 
 	OBSDataAutoRelease settings = obs_data_create();
 	obs_data_set_string(settings, "bind_ip", bindIP);
@@ -1844,18 +1844,18 @@ bool AdvancedOutput::StartRecording() {
 		SetupOutputs();
 
 	if (!ffmpegOutput || ffmpegRecording) {
-		path = config_get_string(CoreApp->BasicConfig(), "AdvOut",
+		path = config_get_string(CoreApp->GetBasicConfig(), "AdvOut",
 					 ffmpegRecording ? "FFFilePath" : "RecFilePath");
-		recFormat = config_get_string(CoreApp->BasicConfig(), "AdvOut",
+		recFormat = config_get_string(CoreApp->GetBasicConfig(), "AdvOut",
 					      ffmpegRecording ? "FFExtension" : "RecFormat2");
 		filenameFormat =
-		  config_get_string(CoreApp->BasicConfig(), "Output", "FilenameFormatting");
+		  config_get_string(CoreApp->GetBasicConfig(), "Output", "FilenameFormatting");
 		overwriteIfExists =
-		  config_get_bool(CoreApp->BasicConfig(), "Output", "OverwriteIfExists");
-		noSpace = config_get_bool(CoreApp->BasicConfig(), "AdvOut",
+		  config_get_bool(CoreApp->GetBasicConfig(), "Output", "OverwriteIfExists");
+		noSpace = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut",
 					  ffmpegRecording ? "FFFileNameWithoutSpace"
 							  : "RecFileNameWithoutSpace");
-		splitFile = config_get_bool(CoreApp->BasicConfig(), "AdvOut", "RecSplitFile");
+		splitFile = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "RecSplitFile");
 
 		std::string strPath = GetRecordingFilename(
 		  path, recFormat, noSpace, overwriteIfExists, filenameFormat, ffmpegRecording);
@@ -1865,14 +1865,14 @@ bool AdvancedOutput::StartRecording() {
 
 		if (splitFile) {
 			splitFileType =
-			  config_get_string(CoreApp->BasicConfig(), "AdvOut", "RecSplitFileType");
+			  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecSplitFileType");
 			splitFileTime =
 			  (astrcmpi(splitFileType, "Time") == 0)
-			    ? config_get_int(CoreApp->BasicConfig(), "AdvOut", "RecSplitFileTime")
+			    ? config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "RecSplitFileTime")
 			    : 0;
 			splitFileSize =
 			  (astrcmpi(splitFileType, "Size") == 0)
-			    ? config_get_int(CoreApp->BasicConfig(), "AdvOut", "RecSplitFileSize")
+			    ? config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "RecSplitFileSize")
 			    : 0;
 			std::string ext = GetFormatExt(recFormat);
 			obs_data_set_string(settings, "directory", path);
@@ -1923,21 +1923,21 @@ bool AdvancedOutput::StartReplayBuffer() {
 		SetupOutputs();
 
 	if (!ffmpegOutput || ffmpegRecording) {
-		path = config_get_string(CoreApp->BasicConfig(), "AdvOut",
+		path = config_get_string(CoreApp->GetBasicConfig(), "AdvOut",
 					 ffmpegRecording ? "FFFilePath" : "RecFilePath");
-		recFormat = config_get_string(CoreApp->BasicConfig(), "AdvOut",
+		recFormat = config_get_string(CoreApp->GetBasicConfig(), "AdvOut",
 					      ffmpegRecording ? "FFExtension" : "RecFormat2");
 		filenameFormat =
-		  config_get_string(CoreApp->BasicConfig(), "Output", "FilenameFormatting");
+		  config_get_string(CoreApp->GetBasicConfig(), "Output", "FilenameFormatting");
 		overwriteIfExists =
-		  config_get_bool(CoreApp->BasicConfig(), "Output", "OverwriteIfExists");
-		noSpace = config_get_bool(CoreApp->BasicConfig(), "AdvOut",
+		  config_get_bool(CoreApp->GetBasicConfig(), "Output", "OverwriteIfExists");
+		noSpace = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut",
 					  ffmpegRecording ? "FFFileNameWithoutSpace"
 							  : "RecFileNameWithoutSpace");
-		rbPrefix = config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecRBPrefix");
-		rbSuffix = config_get_string(CoreApp->BasicConfig(), "SimpleOutput", "RecRBSuffix");
-		rbTime = config_get_int(CoreApp->BasicConfig(), "AdvOut", "RecRBTime");
-		rbSize = config_get_int(CoreApp->BasicConfig(), "AdvOut", "RecRBSize");
+		rbPrefix = config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRBPrefix");
+		rbSuffix = config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRBSuffix");
+		rbTime = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "RecRBTime");
+		rbSize = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "RecRBSize");
 
 		std::string f = GetFormatString(filenameFormat, rbPrefix, rbSuffix);
 		std::string ext = GetFormatExt(recFormat);
@@ -2001,7 +2001,7 @@ bool AdvancedOutput::ReplayBufferActive() const {
 /* ------------------------------------------------------------------------ */
 
 void BasicOutputHandler::SetupAutoRemux(const char*& container) {
-	bool autoRemux = config_get_bool(CoreApp->BasicConfig(), "Video", "AutoRemux");
+	bool autoRemux = config_get_bool(CoreApp->GetBasicConfig(), "Video", "AutoRemux");
 	if (autoRemux && strcmp(container, "mp4") == 0)
 		container = "mkv";
 }

@@ -1,11 +1,10 @@
 #pragma once
 
-#include <memory>
 #include <atomic>
 
-#include <obs.hpp>
 #include "utils.h"
 #include "ui.h"
+#include "scene-source.h"
 
 #define VERSION "0.0.1"
 
@@ -54,12 +53,12 @@ public:
 	int Run(int argc, char* argv[], UIApplication* application);
 	~App();
 
-	inline config_t* GlobalConfig() const { return globalConfig; }
+	inline config_t* GetGlobalConfig() const { return globalConfig; }
 	inline const char* GetLocale() const { return locale.c_str(); }
 	inline const char* GetString(const char* lookupVal) const {
 		return textLookup.GetString(lookupVal);
 	}
-	inline ConfigFile& BasicConfig() { return basicConfig; }
+	inline ConfigFile& GetBasicConfig() { return basicConfig; }
 	inline void SetOutputCallback(OutputCallback* callback) { outputCallback = callback; }
 	inline bool IsPreviewProgramMode() const {
 		return os_atomic_load_bool(&previewProgramMode);

@@ -143,8 +143,8 @@ static bool CopyProfile(const char* fromPartial, const char* to) {
 
 static bool ProfileNeedsRestart(config_t* newConfig, std::string& settings) {
 	const char* oldSpeakers =
-	  config_get_string(CoreApp->BasicConfig(), "Audio", "ChannelSetup");
-	uint64_t oldSampleRate = config_get_uint(CoreApp->BasicConfig(), "Audio", "SampleRate");
+	  config_get_string(CoreApp->GetBasicConfig(), "Audio", "ChannelSetup");
+	uint64_t oldSampleRate = config_get_uint(CoreApp->GetBasicConfig(), "Audio", "SampleRate");
 
 	const char* newSpeakers = config_get_string(newConfig, "Audio", "ChannelSetup");
 	uint64_t newSampleRate = config_get_uint(newConfig, "Audio", "SampleRate");
@@ -169,7 +169,7 @@ static bool ProfileNeedsRestart(config_t* newConfig, std::string& settings) {
 bool App::AddProfile(bool create_new, const char* title, const char* text, const char* init_text,
 		     bool rename) {
 	std::string name;
-	bool showWizardChecked = config_get_bool(GlobalConfig(), "Basic", "ConfigOnNewProfile");
+	bool showWizardChecked = config_get_bool(GetGlobalConfig(), "Basic", "ConfigOnNewProfile");
 	return CreateProfile(name, create_new, showWizardChecked, rename);
 }
 
@@ -183,10 +183,10 @@ bool App::CreateProfile(const std::string& newName, bool createNew, bool showWiz
 		return false;
 
 	if (createNew) {
-		config_set_bool(GlobalConfig(), "Basic", "ConfigOnNewProfile", showWizardChecked);
+		config_set_bool(GetGlobalConfig(), "Basic", "ConfigOnNewProfile", showWizardChecked);
 	}
 
-	std::string curDir = config_get_string(GlobalConfig(), "Basic", "ProfileDir");
+	std::string curDir = config_get_string(GetGlobalConfig(), "Basic", "ProfileDir");
 
 	char baseDir[512];
 	int ret = GetConfigPath(baseDir, sizeof(baseDir), "obs-studio/basic/profiles/");
@@ -216,8 +216,8 @@ bool App::CreateProfile(const std::string& newName, bool createNew, bool showWiz
 	if (api && !rename)
 		api->on_event(OBS_FRONTEND_EVENT_PROFILE_CHANGING);
 
-	config_set_string(GlobalConfig(), "Basic", "Profile", newName.c_str());
-	config_set_string(GlobalConfig(), "Basic", "ProfileDir", newDir.c_str());
+	config_set_string(GetGlobalConfig(), "Basic", "Profile", newName.c_str());
+	config_set_string(GetGlobalConfig(), "Basic", "ProfileDir", newDir.c_str());
 
 	config_set_string(config, "General", "Name", newName.c_str());
 	basicConfig.SaveSafe("tmp");
@@ -234,7 +234,7 @@ bool App::CreateProfile(const std::string& newName, bool createNew, bool showWiz
 	     createNew ? "clean" : "duplicate", newDir.c_str());
 	blog(LOG_INFO, "------------------------------------------------");
 
-	config_save_safe(GlobalConfig(), "tmp", nullptr);
+	config_save_safe(GetGlobalConfig(), "tmp", nullptr);
 
 	if (api && !rename) {
 		api->on_event(OBS_FRONTEND_EVENT_PROFILE_LIST_CHANGED);
@@ -298,7 +298,7 @@ void App::DeleteProfile(const char* profileName, const char* profileDir) {
 }
 
 void App::DeleteProfile(const std::string& name) {
-	const char* curName = config_get_string(GlobalConfig(), "Basic", "Profile");
+	const char* curName = config_get_string(GetGlobalConfig(), "Basic", "Profile");
 
 	const char* profileDir = nullptr;
 	if (!GetProfileDir(name.c_str(), profileDir)) {
@@ -313,13 +313,13 @@ void App::DeleteProfile(const std::string& name) {
 
 	DeleteProfile(name.c_str(), profileDir);
 	RefreshProfiles();
-	config_save_safe(GlobalConfig(), "tmp", nullptr);
+	config_save_safe(GetGlobalConfig(), "tmp", nullptr);
 	if (api)
 		api->on_event(OBS_FRONTEND_EVENT_PROFILE_LIST_CHANGED);
 }
 
 void App::RefreshProfiles() {
-	const char* curName = config_get_string(GlobalConfig(), "Basic", "Profile");
+	const char* curName = config_get_string(GetGlobalConfig(), "Basic", "Profile");
 
 	auto addProfile = [&](const char* name, const char* path) {
 		std::string file = strrchr(path, '/') + 1;

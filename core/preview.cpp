@@ -168,17 +168,17 @@ vec3 Preview::GetSnapOffset(const vec3& tl, const vec3& br) {
 	vec3_zero(&clampOffset);
 
 	const bool snap =
-	  config_get_bool(CoreApp->GlobalConfig(), "BasicWindow", "SnappingEnabled");
+	  config_get_bool(CoreApp->GetGlobalConfig(), "BasicWindow", "SnappingEnabled");
 	if (snap == false)
 		return clampOffset;
 
 	const bool screenSnap =
-	  config_get_bool(CoreApp->GlobalConfig(), "BasicWindow", "ScreenSnapping");
+	  config_get_bool(CoreApp->GetGlobalConfig(), "BasicWindow", "ScreenSnapping");
 	const bool centerSnap =
-	  config_get_bool(CoreApp->GlobalConfig(), "BasicWindow", "CenterSnapping");
+	  config_get_bool(CoreApp->GetGlobalConfig(), "BasicWindow", "CenterSnapping");
 
 	const float clampDist =
-	  config_get_double(CoreApp->GlobalConfig(), "BasicWindow", "SnapDistance") / previewScale;
+	  config_get_double(CoreApp->GetGlobalConfig(), "BasicWindow", "SnapDistance") / previewScale;
 	const float centerX = br.x - (br.x - tl.x) / 2.0f;
 	const float centerY = br.y - (br.y - tl.y) / 2.0f;
 
@@ -833,9 +833,9 @@ void Preview::SnapItemMovement(vec2& offset) {
 	vec3 snapOffset = GetSnapOffset(data.tl, data.br);
 
 	const bool snap =
-	  config_get_bool(CoreApp->GlobalConfig(), "BasicWindow", "SnappingEnabled");
+	  config_get_bool(CoreApp->GetGlobalConfig(), "BasicWindow", "SnappingEnabled");
 	const bool sourcesSnap =
-	  config_get_bool(CoreApp->GlobalConfig(), "BasicWindow", "SourceSnapping");
+	  config_get_bool(CoreApp->GetGlobalConfig(), "BasicWindow", "SourceSnapping");
 	if (snap == false)
 		return;
 	if (sourcesSnap == false) {
@@ -845,7 +845,7 @@ void Preview::SnapItemMovement(vec2& offset) {
 	}
 
 	const float clampDist =
-	  config_get_double(CoreApp->GlobalConfig(), "BasicWindow", "SnapDistance") / previewScale;
+	  config_get_double(CoreApp->GetGlobalConfig(), "BasicWindow", "SnapDistance") / previewScale;
 
 	OffsetData offsetData;
 	offsetData.clampDist = clampDist;
