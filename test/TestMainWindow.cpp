@@ -74,10 +74,7 @@ void TestMainWindow::Prepare() {
 	activateWindow();
 
 	// load all local sources, may be run this in a separate thread ?
-	std::thread([this]() {
-		std::this_thread::sleep_for(std::chrono::seconds(5));
-    LoadLocalSources();
-	}).detach();
+	std::thread([this]() { LoadLocalSources(); }).detach();
 }
 
 bool TestMainWindow::nativeEvent(const QByteArray&, void* message, qintptr*) {
@@ -207,12 +204,32 @@ void TestMainWindow::LoadLocalSources() {
 			blog(LOG_INFO, "screen source: %s, %s", item.Name().c_str(),
 			     item.ID().c_str());
 		}
+
+		/*if (!screenSources.empty()) {
+			auto screenSource = screenSources[0];
+			screenSource.Attach();
+		}*/
 	}
 	{
-		auto cameraSources = core::CameraSource::GetCameraSources();
+		/*	auto cameraSources = core::CameraSource::GetCameraSources();
 		for (const auto& item : cameraSources) {
 			blog(LOG_INFO, "camera source: %s, %s", item.Name().c_str(),
 			     item.ID().c_str());
-		}
+		}*/
+		/*if (!cameraSources.empty()) {
+			auto cameraSource = cameraSources[0];
+			cameraSource.Attach();
+		}*/
 	}
+
+	auto sources = core::Source::GetAttachedSources();
+	for (const auto& item : sources) {
+		blog(LOG_INFO, "attached source: %s, %s", item.Name().c_str(), item.ID().c_str());
+	}
+	/*if (!sources.empty()) {
+		if (sources[0].Detach()) {
+			blog(LOG_INFO, "detached source: %s, %s", sources[0].Name().c_str(),
+			     sources[0].ID().c_str());
+		}
+	}*/
 }

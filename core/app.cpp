@@ -1357,8 +1357,8 @@ bool App::OBSInit() {
 
 	libobs_initialized = true;
 
-	// tell application instance ready to update UI
-  application->OnConfigureFinished();
+	// tell application instance ready to load config & profiles
+  application->OnConfigureBegin();
 
 	const char* sceneCollection =
 	  config_get_string(GetGlobalConfig(), "Basic", "SceneCollectionFile");
@@ -1462,6 +1462,9 @@ bool App::OBSInit() {
 
 	if (api)
 		api->on_event(OBS_FRONTEND_EVENT_FINISHED_LOADING);
+
+  // tell application instance ready to update UI
+  application->OnConfigureFinished();
 
 	return true;
 }

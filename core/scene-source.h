@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <optional>
 
 #include <obs.hpp>
 
@@ -28,7 +29,7 @@ private:
 	std::string name;
 };
 
-/// not for external use, called inside this module like CoreApp
+/// not for external use
 class SceneSourceManager {
 public:
 	SceneSourceManager();
@@ -88,7 +89,17 @@ public:
 	virtual const std::string& ID() const { return id; }
 	virtual vec2 Size() const { return size; }
 
-	virtual obs_data_t* Properties() = 0;
+	virtual obs_data_t* Properties() { return nullptr; };
+
+	virtual bool Attach();
+	virtual bool Detach();
+
+	static std::vector<Source> GetAttachedSources();
+
+	static std::optional<std::reference_wrapper<Source>>
+	GetAttachedByName(const std::string& name);
+
+	static bool RemoveAttachedByName(const std::string& name);
 
 protected:
 	std::string name;
@@ -114,7 +125,7 @@ public:
 	  : Source(name, url, kSourceTypeRTSP) {}
 	virtual ~RTSPSource() {}
 
-  virtual obs_data_t* Properties() override;
+	virtual obs_data_t* Properties() override;
 };
 
 class CameraSource : public Source {
@@ -125,7 +136,7 @@ public:
 
 	static std::vector<CameraSource> GetCameraSources();
 
-  virtual obs_data_t* Properties() override;
+	virtual obs_data_t* Properties() override;
 
 	bool SelectResolution(uint32_t idx);
 	bool SelectFps(uint32_t idx);
@@ -137,7 +148,7 @@ public:
 
 private:
 	std::vector<std::string> resolutions;
-	// current selected resolution(default is the first element in the vector(resolutions_))
+	// current selected resolution(default is the first element in the vector(resolutions))
 	std::string selected_resolution;
 	// all available fps, for example: (Match Output FPS, -1), (Highest FPS, 0), (30, 333333)....
 	std::vector<std::tuple<std::string, int64_t>> fps;
@@ -152,7 +163,7 @@ public:
 
 	static std::vector<ScreenSource> GetScreenSources();
 
-  virtual obs_data_t* Properties() override;
+	virtual obs_data_t* Properties() override;
 };
 
 } // namespace core

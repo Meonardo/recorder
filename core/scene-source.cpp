@@ -36,6 +36,32 @@ static bool replace(std::string& source, const std::string& from, const std::str
 	return true;
 }
 
+template<typename T>
+static void get_source_setting_value(obs_data_t* d, const char* settingName, T& result) {
+	obs_data_item_t* item = nullptr;
+
+	for (item = obs_data_first(d); item; obs_data_item_next(&item)) {
+		enum obs_data_type type = obs_data_item_gettype(item);
+		const char* name = obs_data_item_get_name(item);
+		if (strcmp(name, settingName) == 0) {
+			if (!obs_data_item_has_user_value(item))
+				continue;
+			if (type == OBS_DATA_STRING) {
+				result = std::string(obs_data_item_get_string(item));
+			} else if (type == OBS_DATA_NUMBER) {
+				enum obs_data_number_type type = obs_data_item_numtype(item);
+				if (type == OBS_DATA_NUM_INT) {
+					result = (int)obs_data_item_get_int(item);
+				} else if (type == OBS_DATA_NUM_DOUBLE) {
+					result = (int)obs_data_item_get_double(item);
+				}
+			} else if (type == OBS_DATA_BOOLEAN) {
+				result = obs_data_item_get_bool(item);
+			}
+		}
+	}
+}
+
 namespace core {
 void Scene::AddSignalHandler(signal_handler_t* handler) {
 	container.ref = data;
@@ -148,8 +174,9 @@ void SceneSourceManager::AddScene(OBSSource source) {
 void SceneSourceManager::AddSceneItem(OBSSceneItem item) {
 	obs_scene_t* scene = obs_sceneitem_get_scene(item);
 
-	if (CoreApp->GetCurrentScene() == scene)
-		sources.push_back(item);
+	/*if (CoreApp->GetCurrentScene() == scene) {
+    sources.push_back(item);
+  }*/
 
 	auto source = obs_sceneitem_get_source(item);
 	obs_source_active(source);
@@ -467,6 +494,297 @@ obs_data_t* RTSPSource::Properties() {
 	obs_data_set_bool(data, "stop_on_hide", true);
 
 	return data;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////
+
+struct CreateSceneItemData {
+	obs_source_t* source;                             // In
+	bool sceneItemEnabled;                            // In
+	obs_transform_info* sceneItemTransform = nullptr; // In
+	obs_sceneitem_crop* sceneItemCrop = nullptr;      // In
+	OBSSceneItem sceneItem;                           // Out
+};
+
+static void CreateSceneItemHelper(void* _data, obs_scene_t* scene) {
+	auto* data = static_cast<CreateSceneItemData*>(_data);
+	data->sceneItem = obs_scene_add(scene, data->source);
+
+	if (data->sceneItemTransform)
+		obs_sceneitem_set_info(data->sceneItem, data->sceneItemTransform);
+
+	if (data->sceneItemCrop)
+		obs_sceneitem_set_crop(data->sceneItem, data->sceneItemCrop);
+
+	obs_sceneitem_set_visible(data->sceneItem, data->sceneItemEnabled);
+}
+
+static obs_sceneitem_t* CreateSceneItem(obs_source_t* source, obs_scene_t* scene,
+					bool sceneItemEnabled,
+					obs_transform_info* sceneItemTransform,
+					obs_sceneitem_crop* sceneItemCrop) {
+	if (!(source && scene))
+		return nullptr;
+
+	// Create data struct and populate for scene item creation
+	CreateSceneItemData data;
+	data.source = source;
+	data.sceneItemEnabled = sceneItemEnabled;
+	data.sceneItemTransform = sceneItemTransform;
+	data.sceneItemCrop = sceneItemCrop;
+
+	// Enter graphics context and create the scene item
+	obs_enter_graphics();
+	obs_scene_atomic_update(scene, CreateSceneItemHelper, &data);
+	obs_leave_graphics();
+
+	obs_sceneitem_addref(data.sceneItem);
+
+	return data.sceneItem;
+}
+
+static std::string SourceTypeString(SourceType type) {
+	switch (type) {
+	case kSourceTypeAudioCapture: return "wasapi_input_capture";
+	case kSourceTypeAudioPlayback: return "wasapi_output_capture";
+	case kSourceTypeScreenCapture: return "monitor_capture";
+	case kSourceTypeCamera: return "dshow_input";
+	case kSourceTypeRTSP: return "rtsp_source";
+	default: return "";
+	}
+}
+
+bool Source::Attach() {
+	OBSSourceAutoRelease ret = obs_get_source_by_name(name.c_str());
+	if (ret) {
+		blog(LOG_ERROR, "source with name %s already attached!", name.c_str());
+		return false;
+	}
+
+	OBSDataAutoRelease inputSettings = Properties();
+	// create the input source
+	OBSSourceAutoRelease input =
+	  obs_source_create(SourceTypeString(type).c_str(), name.c_str(), inputSettings, nullptr);
+	if (!input) {
+		blog(LOG_ERROR, "create scene source failed!");
+		return false;
+	}
+
+	uint32_t flags = obs_source_get_output_flags(input);
+	if ((flags & OBS_SOURCE_MONITOR_BY_DEFAULT) != 0)
+		obs_source_set_monitoring_type(input, OBS_MONITORING_TYPE_MONITOR_ONLY);
+
+	obs_scene_t* scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return false;
+	}
+	obs_sceneitem_t* sceneItem = CreateSceneItem(input, scene, true, nullptr, nullptr);
+	if (sceneItem == nullptr) {
+		blog(LOG_ERROR, "create scene item failed!");
+		blog(LOG_ERROR, "create scene item failed!");
+		return false;
+	}
+
+	return true;
+}
+
+bool Source::Detach() {
+	OBSScene scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return false;
+	}
+
+	OBSSceneItemAutoRelease source = obs_scene_find_source(scene, name.c_str());
+	if (source == nullptr) {
+		blog(LOG_ERROR, "FATAL! find source failed!");
+		return false;
+	}
+	obs_sceneitem_remove(source);
+
+	// check input source
+	obs_source_t* input = obs_get_source_by_name(name.c_str());
+	if (input == nullptr) {
+		blog(LOG_ERROR, "the source with name(%s) not exist!\n", name.c_str());
+		return false;
+	}
+
+	if (obs_source_get_type(input) != OBS_SOURCE_TYPE_INPUT) {
+		obs_source_release(input);
+		blog(LOG_ERROR, "the source with name(%s) is not an input!\n", name.c_str());
+		return false;
+	}
+	obs_source_remove(input);
+
+	return true;
+}
+
+std::vector<Source> Source::GetAttachedSources() {
+	auto result = std::vector<Source>();
+
+	auto scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return result;
+	}
+
+	blog(LOG_INFO, "enum scene item in the scene");
+
+	auto cb = [](obs_scene_t*, obs_sceneitem_t* sceneItem, void* param) {
+		auto enumData = static_cast<std::vector<core::Source>*>(param);
+		// get scene item
+		OBSSource itemSource = obs_sceneitem_get_source(sceneItem);
+		OBSDataAutoRelease privateSettings = obs_sceneitem_get_private_settings(sceneItem);
+		// get settings
+		obs_data_t* settings = obs_source_get_settings(itemSource);
+		// get name
+		std::string name(obs_source_get_name(itemSource));
+		// get id
+		uint64_t sceneItemId = obs_sceneitem_get_id(sceneItem);
+
+		if (obs_source_get_type(itemSource) == OBS_SOURCE_TYPE_INPUT) {
+			const char* sourceType = obs_source_get_id(itemSource);
+			std::string inputType(sourceType);
+
+			if (inputType == "monitor_capture") {
+				std::string id;
+				get_source_setting_value<std::string>(settings, "monitor_id", id);
+				auto item = core::ScreenSource(name, id);
+				enumData->push_back(item);
+
+			} else if (inputType == "rtsp_source") {
+				std::string url;
+				get_source_setting_value<std::string>(settings, "url", url);
+				auto item = core::RTSPSource(name, url);
+				enumData->push_back(item);
+			} else if (inputType == "dshow_input") {
+				std::string id;
+				get_source_setting_value<std::string>(settings, "video_device_id",
+								     id);
+				auto item = core::CameraSource(name, id);
+				enumData->push_back(item);
+			} else if (inputType == "wasapi_output_capture") {
+				// speakers
+				std::string id;
+				auto item =
+				  core::AudioSource(name, id, core::kSourceTypeAudioPlayback);
+				enumData->push_back(item);
+			} else if (inputType == "wasapi_input_capture") {
+				// microphones
+				std::string id;
+				get_source_setting_value<std::string>(settings, "device_id", id);
+				auto item =
+				  core::AudioSource(name, id, core::kSourceTypeAudioCapture);
+				enumData->push_back(item);
+			}
+		}
+
+		return true;
+	};
+
+	// enum scene item and save it to the scene object.
+	obs_scene_enum_items(scene, cb, &result);
+
+	return result;
+}
+
+std::optional<std::reference_wrapper<Source>> Source::GetAttachedByName(const std::string& name) {
+	if (name.empty())
+		return std::nullopt;
+
+	auto scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return std::nullopt;
+	}
+
+	auto sceneItem = obs_scene_find_source(scene, name.c_str());
+	if (sceneItem == nullptr) {
+		return std::nullopt;
+	}
+
+	OBSSource source = obs_sceneitem_get_source(sceneItem);
+	if (source == nullptr) {
+		return std::nullopt;
+	}
+	OBSDataAutoRelease privateSettings = obs_sceneitem_get_private_settings(sceneItem);
+	// get settings
+	obs_data_t* settings = obs_source_get_settings(source);
+
+	if (obs_source_get_type(source) == OBS_SOURCE_TYPE_INPUT) {
+		const char* sourceType = obs_source_get_id(source);
+		std::string inputType(sourceType);
+
+		if (inputType == "monitor_capture") {
+			// screen capture
+			std::string id;
+			get_source_setting_value<std::string>(settings, "monitor_id", id);
+			auto item = core::ScreenSource(name, id);
+			return std::ref(item);
+		} else if (inputType == "rtsp_source") {
+			// rtsp source
+			std::string url;
+			get_source_setting_value<std::string>(settings, "url", url);
+			auto item = core::RTSPSource(name, url);
+			return std::ref(item);
+		} else if (inputType == "dshow_input") {
+			// camera
+			std::string id;
+			get_source_setting_value<std::string>(settings, "video_device_id", id);
+			auto item = core::CameraSource(name, id);
+			return std::ref(item);
+		} else if (inputType == "wasapi_output_capture") {
+			// speakers
+			std::string id;
+			auto item = core::AudioSource(name, id, core::kSourceTypeAudioPlayback);
+			return std::ref(item);
+		} else if (inputType == "wasapi_input_capture") {
+			// microphones
+			std::string id;
+			get_source_setting_value<std::string>(settings, "device_id", id);
+			auto item = core::AudioSource(name, id, core::kSourceTypeAudioCapture);
+			return std::ref(item);
+		}
+	}
+
+	return std::nullopt;
+}
+
+bool Source::RemoveAttachedByName(const std::string& name) {
+	if (name.empty())
+		return false;
+
+	auto scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return false;
+	}
+
+	OBSSceneItemAutoRelease source = obs_scene_find_source(scene, name.c_str());
+	if (source == nullptr) {
+		blog(LOG_ERROR, "FATAL! find source failed!");
+		return false;
+	}
+	obs_sceneitem_remove(source);
+
+	// check input source
+	obs_source_t* input = obs_get_source_by_name(name.c_str());
+	if (input == nullptr) {
+		blog(LOG_ERROR, "the source with name(%s) not exist!\n", name.c_str());
+		return false;
+	}
+
+	if (obs_source_get_type(input) != OBS_SOURCE_TYPE_INPUT) {
+		obs_source_release(input);
+		blog(LOG_ERROR, "the source with name(%s) is not an input!\n", name.c_str());
+		return false;
+	}
+	obs_source_remove(input);
+
+	return true;
 }
 
 } // namespace core
