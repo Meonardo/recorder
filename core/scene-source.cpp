@@ -446,7 +446,6 @@ std::vector<ScreenSource> ScreenSource::GetScreenSources() {
 		blog(LOG_INFO, "enum monitor: %s, id=%s", name, id);
 
 		ScreenSource item(name, id);
-		result.push_back(item);
 
 		// eg: 3840x2160 @ 2560,-550
 		std::string name_copy = std::string(name);
@@ -460,6 +459,8 @@ std::vector<ScreenSource> ScreenSource::GetScreenSources() {
 		split_string(size_str, "x", vec3);
 		item.size.x = std::stof(vec3.front());
 		item.size.y = std::stof(vec3.back());
+
+    result.push_back(item);
 	}
 
 	// release properties for enum device list.
@@ -480,6 +481,18 @@ obs_data_t* ScreenSource::Properties() {
 
 	obs_data_set_bool(data, "cursor", true);
 	return data;
+}
+
+bool ScreenSource::ScaleFitOutputSize() {
+	if (size.x <= 0 || size.y <= 0)
+		return false;
+
+	float scale_x = OUTPUT_WIDTH / size.x;
+	float scale_y = OUTPUT_HEIGHT / size.y;
+
+  vec2 scale = { scale_x, scale_y };
+
+	return Source::Resize(scale);
 }
 
 obs_data_t* RTSPSource::Properties() {
@@ -554,6 +567,63 @@ static std::string SourceTypeString(SourceType type) {
 	case kSourceTypeRTSP: return "rtsp_source";
 	default: return "";
 	}
+}
+
+bool Source::IsAttached() const {
+	OBSSourceAutoRelease ret = obs_get_source_by_name(name.c_str());
+	if (ret == nullptr) {
+		return false;
+	}
+	return true;
+}
+
+bool Source::Move(vec2 pos) {
+	OBSScene scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return false;
+	}
+
+	OBSSceneItemAutoRelease sceneItem = obs_scene_find_source(scene, name.c_str());
+	if (sceneItem == nullptr) {
+		blog(LOG_ERROR, "FATAL! find source failed!");
+		return false;
+	}
+
+	obs_sceneitem_defer_update_begin(sceneItem);
+
+	if (pos.x >= 0 && pos.y >= 0) {
+		obs_sceneitem_set_pos(sceneItem, &pos);
+		obs_sceneitem_set_alignment(sceneItem, 5);
+	}
+
+	obs_sceneitem_defer_update_end(sceneItem);
+
+	return true;
+}
+
+bool Source::Resize(vec2 size) {
+	OBSScene scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return false;
+	}
+
+	OBSSceneItemAutoRelease sceneItem = obs_scene_find_source(scene, name.c_str());
+	if (sceneItem == nullptr) {
+		blog(LOG_ERROR, "FATAL! find source failed!");
+		return false;
+	}
+
+	obs_sceneitem_defer_update_begin(sceneItem);
+
+	if (size.x >= 0 && size.y >= 0) {
+		obs_sceneitem_set_scale(sceneItem, &size);
+	}
+
+	obs_sceneitem_defer_update_end(sceneItem);
+
+	return false;
 }
 
 bool Source::Attach() {
@@ -663,7 +733,7 @@ std::vector<Source> Source::GetAttachedSources() {
 			} else if (inputType == "dshow_input") {
 				std::string id;
 				get_source_setting_value<std::string>(settings, "video_device_id",
-								     id);
+								      id);
 				auto item = core::CameraSource(name, id);
 				enumData->push_back(item);
 			} else if (inputType == "wasapi_output_capture") {

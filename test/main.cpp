@@ -10,7 +10,10 @@ public:
 	TestApp(int& argc, char** argv) : QApplication(argc, argv) {}
 	~TestApp() {}
 
-	void AddConfigureCallback(VoidFunc cb) { this->cb = cb; }
+	void AddConfigureCallback(VoidFunc cb, TestMainWindow* mainWindow) {
+    connect(mainWindow, &TestMainWindow::destroyed, this, &TestApp::quit);
+    this->cb = cb;
+  }
 
 	virtual int Execute() override { return exec(); }
 
@@ -35,14 +38,17 @@ int main(int argc, char* argv[]) {
 int main2(int argc, char* argv[]) {
 #endif
 	TestApp app(argc, argv);
+  app.setQuitOnLastWindowClosed(false);
 
-  TestMainWindow mainWindow;
+  TestMainWindow* mainWindow = new TestMainWindow;
 
-	app.AddConfigureCallback([&mainWindow](bool finished) {
+	app.AddConfigureCallback([mainWindow](bool finished) {
     if (finished) {
-      mainWindow.Prepare();
+      mainWindow->Prepare();
     }
-	});
+	}, mainWindow);
 
-	return CoreApp->Run(argc, argv, &app);
+  auto ret = CoreApp->Run(argc, argv, &app);
+
+  return ret;
 }

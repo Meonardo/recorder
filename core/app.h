@@ -51,6 +51,7 @@ public:
 	}
 
 	int Run(int argc, char* argv[], UIApplication* application);
+  void Quit();
 	~App();
 
 	inline config_t* GetGlobalConfig() const { return globalConfig; }

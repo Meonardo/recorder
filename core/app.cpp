@@ -1036,6 +1036,8 @@ int App::Run(int argc, char* argv[], UIApplication* application) {
 
 	int ret = RunMain(logFile, argc, argv);
 
+  Quit();
+
 	if (hRtwq) {
 		typedef HRESULT(STDAPICALLTYPE * PFN_RtwqShutdown)();
 		PFN_RtwqShutdown func = (PFN_RtwqShutdown)GetProcAddress(hRtwq, "RtwqShutdown");
@@ -1049,6 +1051,24 @@ int App::Run(int argc, char* argv[], UIApplication* application) {
 	base_set_log_handler(nullptr, nullptr);
 
 	return ret;
+}
+
+void App::Quit() {
+  obs_hotkey_set_callback_routing_func(nullptr, nullptr);
+
+	sceneSourceManager.reset();
+	service = nullptr;
+	outputHandler.reset();
+
+	bool disableAudioDucking = config_get_bool(globalConfig, "Audio", "DisableAudioDucking");
+	if (disableAudioDucking)
+		DisableAudioDucking(false);
+
+	os_inhibit_sleep_set_active(sleepInhibitor, false);
+	os_inhibit_sleep_destroy(sleepInhibitor);
+
+	if (libobs_initialized)
+		obs_shutdown();
 }
 
 int App::RunMain(std::fstream& logFile, int argc, char* argv[]) {
@@ -1072,7 +1092,7 @@ int App::RunMain(std::fstream& logFile, int argc, char* argv[]) {
 
 	delete_oldest_file(false, "obs-studio/profiler_data");
 
-  bool created_log = false;
+	bool created_log = false;
 	if (!created_log) {
 		create_log_file(logFile);
 		created_log = true;
@@ -1358,7 +1378,7 @@ bool App::OBSInit() {
 	libobs_initialized = true;
 
 	// tell application instance ready to load config & profiles
-  application->OnConfigureBegin();
+	application->OnConfigureBegin();
 
 	const char* sceneCollection =
 	  config_get_string(GetGlobalConfig(), "Basic", "SceneCollectionFile");
@@ -1463,8 +1483,8 @@ bool App::OBSInit() {
 	if (api)
 		api->on_event(OBS_FRONTEND_EVENT_FINISHED_LOADING);
 
-  // tell application instance ready to update UI
-  application->OnConfigureFinished();
+	// tell application instance ready to update UI
+	application->OnConfigureFinished();
 
 	return true;
 }
@@ -2006,7 +2026,7 @@ bool App::LoadService() {
 	type = obs_data_get_string(data, "type");
 
 	OBSDataAutoRelease settings = obs_data_get_obj(data, "settings");
-	OBSDataAutoRelease hotkey_data = obs_data_get_obj(data, "hotkeys");
+  OBSDataAutoRelease hotkey_data = obs_data_get_obj(data, "hotkeys");
 
 	service = obs_service_create(type, "default_service", settings, hotkey_data);
 	obs_service_release(service);
@@ -2260,17 +2280,17 @@ void App::LoadData(obs_data_t* data, const char* file) {
 	blog(LOG_INFO, "------------------------------------------------");
 	blog(LOG_INFO, "Loaded scenes:");
 
-  auto scenes = sceneSourceManager->Scenes();
-  for (const auto item : scenes) {
-    OBSScene scene = OBSScene(item->Data());
+	auto scenes = sceneSourceManager->Scenes();
+	for (const auto item : scenes) {
+		OBSScene scene = OBSScene(item->Data());
 
-    obs_source_t* source = obs_scene_get_source(scene);
-    const char* name = obs_source_get_name(source);
+		obs_source_t* source = obs_scene_get_source(scene);
+		const char* name = obs_source_get_name(source);
 
-    blog(LOG_INFO, "- scene '%s':", name);
-    obs_scene_enum_items(scene, LogSceneItem, (void*)(intptr_t)1);
-    obs_source_enum_filters(source, LogFilter, (void*)(intptr_t)1);
-  }
+		blog(LOG_INFO, "- scene '%s':", name);
+		obs_scene_enum_items(scene, LogSceneItem, (void*)(intptr_t)1);
+		obs_source_enum_filters(source, LogFilter, (void*)(intptr_t)1);
+	}
 
 	blog(LOG_INFO, "------------------------------------------------");
 
@@ -2520,22 +2540,22 @@ void App::TransitionToScene(OBSSource source) {
 }
 
 void App::SetCurrentScene(OBSSource scene, bool force) {
-  TransitionToScene(scene);
+	TransitionToScene(scene);
 
 	if (obs_scene_get_source(GetCurrentScene()) != scene) {
-    auto scenes = sceneSourceManager->Scenes();
-    for (const auto item : scenes) {
-      OBSScene itemScene = OBSScene(item->Data());
-      obs_source_t* source = obs_scene_get_source(itemScene);
+		auto scenes = sceneSourceManager->Scenes();
+		for (const auto item : scenes) {
+			OBSScene itemScene = OBSScene(item->Data());
+			obs_source_t* source = obs_scene_get_source(itemScene);
 
-      if (source == scene) {
-        currentScene = itemScene.Get();
+			if (source == scene) {
+				currentScene = itemScene.Get();
 
-        if (api)
-          api->on_event(OBS_FRONTEND_EVENT_SCENE_CHANGED);
-        break;
-      }
-    }
+				if (api)
+					api->on_event(OBS_FRONTEND_EVENT_SCENE_CHANGED);
+				break;
+			}
+		}
 	}
 
 	if (scene) {

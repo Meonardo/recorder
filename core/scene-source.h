@@ -7,6 +7,9 @@
 
 #include <obs.hpp>
 
+#define OUTPUT_WIDTH 1920
+#define OUTPUT_HEIGHT 1080
+
 namespace core {
 template<typename OBSRef> struct SignalContainer {
 	OBSRef ref;
@@ -88,8 +91,12 @@ public:
 	virtual SourceType Type() const { return type; }
 	virtual const std::string& ID() const { return id; }
 	virtual vec2 Size() const { return size; }
-
 	virtual obs_data_t* Properties() { return nullptr; };
+
+	virtual bool IsAttached() const;
+
+	virtual bool Move(vec2 pos);
+	virtual bool Resize(vec2 size);
 
 	virtual bool Attach();
 	virtual bool Detach();
@@ -164,6 +171,8 @@ public:
 	static std::vector<ScreenSource> GetScreenSources();
 
 	virtual obs_data_t* Properties() override;
+
+  bool ScaleFitOutputSize();
 };
 
 } // namespace core

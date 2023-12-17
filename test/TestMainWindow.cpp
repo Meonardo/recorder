@@ -18,7 +18,7 @@ TestMainWindow::TestMainWindow(QWidget* parent)
     ui(new Ui::TestMainWindowClass()) {
 
 	setAttribute(Qt::WA_NativeWindow);
-	setAttribute(Qt::WA_DeleteOnClose, true);
+  setAttribute(Qt::WA_DeleteOnClose);
 
 	ui->setupUi(this);
 
@@ -41,11 +41,17 @@ TestMainWindow::TestMainWindow(QWidget* parent)
 }
 
 TestMainWindow::~TestMainWindow() {
+  /* clear out UI event queue */
+  QApplication::sendPostedEvents(nullptr);
+  QApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
 	// remove draw callback
 	obs_display_remove_draw_callback(ui->preview->GetDisplay(), TestMainWindow::RenderMain,
 					 this);
 
-	delete ui;
+  QApplication::sendPostedEvents(nullptr);
+
+  delete ui;
 }
 
 void TestMainWindow::Prepare() {
@@ -74,7 +80,7 @@ void TestMainWindow::Prepare() {
 	activateWindow();
 
 	// load all local sources, may be run this in a separate thread ?
-	std::thread([this]() { LoadLocalSources(); }).detach();
+	// std::thread([this]() { LoadLocalSources(); }).detach();
 }
 
 bool TestMainWindow::nativeEvent(const QByteArray&, void* message, qintptr*) {
@@ -205,10 +211,12 @@ void TestMainWindow::LoadLocalSources() {
 			     item.ID().c_str());
 		}
 
-		/*if (!screenSources.empty()) {
-			auto screenSource = screenSources[0];
-			screenSource.Attach();
-		}*/
+		if (!screenSources.empty()) {
+			auto& screenSource = screenSources[0];
+      if (screenSource.Attach()) {
+        screenSource.ScaleFitOutputSize();
+      }
+		}
 	}
 	{
 		/*	auto cameraSources = core::CameraSource::GetCameraSources();
@@ -232,4 +240,7 @@ void TestMainWindow::LoadLocalSources() {
 			     sources[0].ID().c_str());
 		}
 	}*/
+
+	/*auto rtspSource = core::RTSPSource("rtsp://192.168.99.223/1", "rtsp://192.168.99.223/1");
+	rtspSource.Attach();*/
 }
