@@ -2,10 +2,9 @@
 
 #include <algorithm>
 
-#include "../audio-encoders.hpp"
-
 #include "util/threading.h"
 
+#include "audio-encoders.h"
 #include "app.h"
 #include "defines.h"
 

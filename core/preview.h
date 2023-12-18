@@ -7,7 +7,7 @@
 #include <graphics/matrix4.h>
 #include <util/threading.h>
 
-#include "../src/qt-display.hpp"
+#include "qt-display.h"
 
 class QMouseEvent;
 

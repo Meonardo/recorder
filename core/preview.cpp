@@ -11,8 +11,8 @@
 #include <QMouseEvent>
 
 #include "app.h"
-#include "../src/platform.hpp"
-#include "../src/display-helpers.hpp"
+#include "platform.h"
+#include "display-helpers.h"
 
 #define HANDLE_RADIUS 4.0f
 #define HANDLE_SEL_RADIUS (HANDLE_RADIUS * 1.5f)

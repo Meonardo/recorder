@@ -11,7 +11,7 @@
 
 #include "../core/app.h"
 #include "../core/output.h"
-#include "../display-helpers.hpp"
+#include "../core/display-helpers.h"
 #include "../core/source-preview.h"
 
 TestMainWindow::TestMainWindow(QWidget* parent)

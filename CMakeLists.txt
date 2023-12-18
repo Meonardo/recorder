@@ -48,24 +48,22 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/core/source-preview.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/source-preview.h
   ${CMAKE_CURRENT_SOURCE_DIR}/core/defines.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/qt-display.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/qt-display.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/display-helpers.h
+  # ${CMAKE_CURRENT_SOURCE_DIR}/core/api-interface.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/platform.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/platform-windows.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/audio-encoders.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/audio-encoders.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/win-dll-blocklist.c
 
+  ### test files
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.h
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.ui
   ${CMAKE_CURRENT_SOURCE_DIR}/test/main.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/test.h
-
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-display.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-display.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/display-helpers.hpp
-  # ${CMAKE_CURRENT_SOURCE_DIR}/src/api-interface.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/platform.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/platform-windows.cpp
-
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/audio-encoders.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/audio-encoders.cpp
-
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/win-dll-blocklist.c
 )
 
 find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)

@@ -9,7 +9,7 @@
 #include <util/lexer.h>
 #include <util/threading.h>
 
-#include "../src/platform.hpp"
+#include "platform.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 

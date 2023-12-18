@@ -2,8 +2,8 @@
 
 #include "app.h"
 
-#include "../display-helpers.hpp"
-#include "../qt-display.hpp"
+#include "display-helpers.h"
+#include "qt-display.h"
 
 namespace core::ui {
 static void DrawPreview(void* data, uint32_t cx, uint32_t cy) {
