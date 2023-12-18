@@ -76,13 +76,13 @@ static void OBSStopRecording(void* data, calldata_t* params) {
 	core::BasicOutputHandler* output = static_cast<core::BasicOutputHandler*>(data);
 	int code = (int)calldata_int(params, "code");
 	const char* last_error = calldata_string(params, "last_error");
-  std::string error(last_error);
 
 	output->recordingActive = false;
 	os_atomic_set_bool(&recording_active, false);
 	os_atomic_set_bool(&recording_paused, false);
 
-  if (code || !error.empty()) {
+  if (code || last_error != nullptr) {
+    std::string error(last_error);
     output->callback->OnRecordingStopped(error, code);
     return;
   }

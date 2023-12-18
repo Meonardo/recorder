@@ -12,6 +12,7 @@
 #include "../core/app.h"
 #include "../core/output.h"
 #include "../display-helpers.hpp"
+#include "../core/source-preview.h"
 
 TestMainWindow::TestMainWindow(QWidget* parent)
   : QMainWindow(parent),
@@ -223,7 +224,33 @@ void TestMainWindow::ConfigureUI() {
 	connect(ui->sourcePreviewButton, &QPushButton::clicked, this, [&]() {
 		auto idx = ui->sourceTypeComboBox->currentIndex();
 		core::SourceType type = core::SourceType(idx + 1);
-		if (type == core::kSourceTypeCamera || type == core::kSourceTypeRTSP) {}
+		if (type == core::kSourceTypeCamera || type == core::kSourceTypeRTSP) {
+			if (type == core::kSourceTypeRTSP) {
+				auto url = ui->sourceComboBox->currentText().toStdString();
+				if (url.empty()) {
+					return;
+				}
+
+				std::unique_ptr<core::RTSPSource> source =
+				  std::make_unique<core::RTSPSource>(url, url);
+        std::string sourceName(source->Name());
+
+				auto preview = new core::ui::SourcePreview(std::move(source));
+
+        preview->setMinimumSize(480, 270);
+        preview->setWindowTitle(QString::fromStdString(sourceName));
+				preview->show();
+			} else {
+				auto& source = localSources[ui->sourceComboBox->currentIndex()];
+        std::string sourceName(source->Name());
+
+				auto preview = new core::ui::SourcePreview(std::move(source));
+
+        preview->setMinimumSize(480, 270);
+        preview->setWindowTitle(QString::fromStdString(sourceName));
+				preview->show();
+			}
+		}
 	});
 
 	connect(ui->sourceRemoveButton, &QPushButton::clicked, this, [&]() {
@@ -312,62 +339,4 @@ void TestMainWindow::ConfigureUI() {
 			default: break;
 			}
 		});
-}
-
-void TestMainWindow::LoadLocalSources() {
-	{
-		auto audioInputSources =
-		  core::AudioSource::GetAudioSources(core::kSourceTypeAudioCapture);
-		for (const auto& item : audioInputSources) {
-			blog(LOG_INFO, "audio capture device: %s, %s", item.Name().c_str(),
-			     item.ID().c_str());
-		}
-	}
-	{
-		auto audioOutputSources =
-		  core::AudioSource::GetAudioSources(core::kSourceTypeAudioPlayback);
-		for (const auto& item : audioOutputSources) {
-			blog(LOG_INFO, "audio playback device: %s, %s", item.Name().c_str(),
-			     item.ID().c_str());
-		}
-	}
-	{
-		auto screenSources = core::ScreenSource::GetScreenSources();
-		for (const auto& item : screenSources) {
-			blog(LOG_INFO, "screen source: %s, %s", item.Name().c_str(),
-			     item.ID().c_str());
-		}
-
-		if (!screenSources.empty()) {
-			auto& screenSource = screenSources[0];
-			if (screenSource.Attach()) {
-				screenSource.ScaleFitOutputSize();
-			}
-		}
-	}
-	{
-		/*	auto cameraSources = core::CameraSource::GetCameraSources();
-		for (const auto& item : cameraSources) {
-			blog(LOG_INFO, "camera source: %s, %s", item.Name().c_str(),
-			     item.ID().c_str());
-		}*/
-		/*if (!cameraSources.empty()) {
-			auto cameraSource = cameraSources[0];
-			cameraSource.Attach();
-		}*/
-	}
-
-	auto sources = core::Source::GetAttachedSources();
-	for (const auto& item : sources) {
-		blog(LOG_INFO, "attached source: %s, %s", item.Name().c_str(), item.ID().c_str());
-	}
-	/*if (!sources.empty()) {
-		if (sources[0].Detach()) {
-			blog(LOG_INFO, "detached source: %s, %s", sources[0].Name().c_str(),
-			     sources[0].ID().c_str());
-		}
-	}*/
-
-	/*auto rtspSource = core::RTSPSource("rtsp://192.168.99.223/1", "rtsp://192.168.99.223/1");
-	rtspSource.Attach();*/
 }

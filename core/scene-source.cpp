@@ -460,7 +460,7 @@ std::vector<ScreenSource> ScreenSource::GetScreenSources() {
 		item.size.x = std::stof(vec3.front());
 		item.size.y = std::stof(vec3.back());
 
-    result.push_back(item);
+		result.push_back(item);
 	}
 
 	// release properties for enum device list.
@@ -490,7 +490,7 @@ bool ScreenSource::ScaleFitOutputSize() {
 	float scale_x = OUTPUT_WIDTH / size.x;
 	float scale_y = OUTPUT_HEIGHT / size.y;
 
-  vec2 scale = { scale_x, scale_y };
+	vec2 scale = {scale_x, scale_y};
 
 	return Source::Resize(scale);
 }
@@ -854,6 +854,29 @@ bool Source::RemoveAttachedByName(const std::string& name) {
 	obs_source_remove(input);
 
 	return true;
+}
+
+OBSSource Source::GetNativeSource() {
+	OBSSourceAutoRelease ret = obs_get_source_by_name(name.c_str());
+	if (ret) {
+		blog(LOG_ERROR, "source with name %s already attached!", name.c_str());
+		return nullptr;
+	}
+
+	OBSDataAutoRelease inputSettings = Properties();
+	// create the input source
+	obs_source_t* input =
+	  obs_source_create(SourceTypeString(type).c_str(), name.c_str(), inputSettings, nullptr);
+	if (!input) {
+		blog(LOG_ERROR, "create scene source failed!");
+		return nullptr;
+	}
+
+	uint32_t flags = obs_source_get_output_flags(input);
+	if ((flags & OBS_SOURCE_MONITOR_BY_DEFAULT) != 0)
+		obs_source_set_monitoring_type(input, OBS_MONITORING_TYPE_MONITOR_ONLY);
+
+	return OBSSource(input);
 }
 
 } // namespace core

@@ -108,6 +108,8 @@ public:
 
 	static bool RemoveAttachedByName(const std::string& name);
 
+  OBSSource GetNativeSource();
+
 protected:
 	std::string name;
 	std::string id;
