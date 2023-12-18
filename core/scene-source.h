@@ -20,7 +20,7 @@ class SceneSourceManager;
 class Scene {
 public:
 	Scene(obs_scene_t* data, const std::string& name) : data(data), name(name) {}
-	~Scene() {}
+	~Scene() { container.handlers.clear(); }
 
 	obs_scene_t* Data() const { return data; }
 
@@ -108,7 +108,7 @@ public:
 
 	static bool RemoveAttachedByName(const std::string& name);
 
-  OBSSource GetNativeSource();
+	OBSSource GetNativeSource();
 
 protected:
 	std::string name;
@@ -136,7 +136,7 @@ public:
 
 	virtual obs_data_t* Properties() override;
 
-  bool ApplyBackgroundRemoval(const std::string& model, bool forceCPU, bool enable);
+	bool ApplyBackgroundRemoval(const std::string& model, bool forceCPU, bool enable);
 };
 
 class CameraSource : public Source {
@@ -157,7 +157,7 @@ public:
 	const std::vector<std::tuple<std::string, int64_t>>& GetAvailableFps() const { return fps; }
 	const std::tuple<std::string, int64_t>& GetSelectedFps() const { return selected_fps; }
 
-  bool ApplyBackgroundRemoval(const std::string& model, bool forceCPU, bool enable);
+	bool ApplyBackgroundRemoval(const std::string& model, bool forceCPU, bool enable);
 
 private:
 	std::vector<std::string> resolutions;
@@ -178,7 +178,7 @@ public:
 
 	virtual obs_data_t* Properties() override;
 
-  bool ScaleFitOutputSize();
+	bool ScaleFitOutputSize();
 };
 
 } // namespace core

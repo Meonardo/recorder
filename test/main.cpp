@@ -43,7 +43,5 @@ int main(int argc, char* argv[]) {
     }
 	}, mainWindow);
 
-  auto ret = CoreApp->Run(argc, argv, &app);
-
-  return ret;
+  return CoreApp->Run(argc, argv, &app);
 }

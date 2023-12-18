@@ -18,6 +18,9 @@ public:
 	SettingsWindow(const core::Source& source, QWidget* parent = nullptr);
 	~SettingsWindow();
 
+Q_SIGNALS:
+   void OnOutputSizeChanged();
+
 private:
 	Ui::SettingsWindowClass* ui;
   core::Source source;

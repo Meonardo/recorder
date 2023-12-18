@@ -44,8 +44,6 @@ TestMainWindow::TestMainWindow(QWidget* parent)
 }
 
 TestMainWindow::~TestMainWindow() {
-	CoreApp->SaveProject();
-
 	// remove draw callback
 	obs_display_remove_draw_callback(ui->preview->GetDisplay(), TestMainWindow::RenderMain,
 					 this);
@@ -131,6 +129,16 @@ void TestMainWindow::changeEvent(QEvent* event) {
 				EnablePreviewDisplay(true);
 		}
 	}
+}
+
+void TestMainWindow::closeEvent(QCloseEvent* event) {
+	CoreApp->SaveProject();
+
+	QWidget::closeEvent(event);
+
+	ui->preview->DestroyDisplay();
+
+	CoreApp->ClearSceneData();
 }
 
 void TestMainWindow::EnablePreviewDisplay(bool enable) {
@@ -228,8 +236,15 @@ void TestMainWindow::ConfigureUI() {
 
 			if (type == core::kSourceTypeScreenCapture) {
 				auto screenSource = dynamic_cast<core::ScreenSource*>(source);
-				if (screenSource)
-					screenSource->ScaleFitOutputSize();
+				if (screenSource) {
+					auto size = screenSource->Size();
+					bool shouldResize =
+					  !(size.x / size.y >
+					    (16 / 9.0)); // 非 16:9 的分辨率 不 需要缩放
+					if (shouldResize) {
+						screenSource->ScaleFitOutputSize();
+					}
+				}
 			}
 		}
 	});
@@ -292,6 +307,11 @@ void TestMainWindow::ConfigureUI() {
 		if (source.Type() == core::kSourceTypeRTSP ||
 		    source.Type() == core::kSourceTypeCamera) {
 			auto settingsWindow = new SettingsWindow(source);
+			connect(settingsWindow, &SettingsWindow::OnOutputSizeChanged, this,
+				[this]() {
+          auto size = this->size();
+					this->resize(size.width() + 1, size.height() + 1);
+				});
 			settingsWindow->show();
 		}
 	});

@@ -91,7 +91,18 @@ SceneSourceManager::SceneSourceManager() {
 	signalHandlers.emplace_back(obs_get_signal_handler(), "source_rename",
 				    SceneSourceManager::SourceRenamed, this);
 }
-SceneSourceManager::~SceneSourceManager() {}
+SceneSourceManager::~SceneSourceManager() {
+  for (auto& item : signalHandlers) {
+    item.Disconnect();
+  }
+
+  for (auto scene : scenes) {
+    delete scene;
+  }
+  scenes.clear();
+
+  sources.clear();
+}
 
 void SceneSourceManager::SourceCreated(void* data, calldata_t* params) {
 	auto manager = reinterpret_cast<SceneSourceManager*>(data);
@@ -214,7 +225,8 @@ void SceneSourceManager::RemoveScene(OBSSource source) {
 	}
 
 	if (sel != nullptr) {
-		delete sel;
+    scenes.erase(std::remove(scenes.begin(), scenes.end(), sel), scenes.end());
+    delete sel;
 	}
 
 	CoreApp->SaveProject();

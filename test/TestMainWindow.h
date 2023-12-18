@@ -27,6 +27,7 @@ protected:
 	virtual bool nativeEvent(const QByteArray& eventType, void* message,
 				 qintptr* result) override;
 	virtual void changeEvent(QEvent* event) override;
+  virtual void closeEvent(QCloseEvent* event) override;
 
 private:
 	Ui::TestMainWindowClass* ui;

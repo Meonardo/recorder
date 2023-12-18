@@ -80,9 +80,13 @@ public:
 	OBSSource GetProgramSource();
 	OBSScene GetCurrentScene();
 
-  // audio & video
-  int ResetVideo(int width = 1920, int height = 1080);
-  bool ResetAudio();
+	// audio & video
+	int ResetVideo(int width = 1920, int height = 1080);
+	bool ResetAudio();
+	void ResetOutputs();
+  void ClearSceneData();
+
+	void* GetApplication() { return application; }
 
 	App(const App&) = delete;
 	App& operator=(const App&) = delete;
@@ -166,7 +170,6 @@ private:
 
 	const char* GetRenderModule() const;
 
-	void ResetOutputs();
 	// service
 	void SetService(obs_service_t* service);
 	void SaveService();
@@ -187,7 +190,6 @@ private:
 
 	void CreateFirstRunSources();
 	void CreateDefaultScene(bool firstStart);
-	void ClearSceneData();
 
 	void SetCurrentScene(obs_scene_t* scene, bool force = false);
 	void ResetAudioDevice(const char* sourceId, const char* deviceId, const char* deviceDesc,

@@ -61,6 +61,11 @@ SettingsWindow::SettingsWindow(const core::Source& source, QWidget* parent)
 		} else if (ui->ratio329CheckBox->isChecked()) {
 			CoreApp->ResetVideo(3840, 1080);
 		}
+
+    CoreApp->ResetOutputs();
+
+    emit OnOutputSizeChanged();
+
 		this->close();
 	});
 }

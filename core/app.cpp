@@ -1036,7 +1036,7 @@ int App::Run(int argc, char* argv[], UIApplication* application) {
 
 	int ret = RunMain(logFile, argc, argv);
 
-	Quit();
+  Quit();
 
 	if (hRtwq) {
 		typedef HRESULT(STDAPICALLTYPE * PFN_RtwqShutdown)();
@@ -1076,10 +1076,10 @@ int App::RunMain(std::fstream& logFile, int argc, char* argv[]) {
 
 	auto profilerNameStore = CreateNameStore();
 
-	std::unique_ptr<void, decltype(ProfilerFree)> prof_release(
+	/*std::unique_ptr<void, decltype(ProfilerFree)> prof_release(
 	  static_cast<void*>(&ProfilerFree), ProfilerFree);
 
-	profiler_start();
+	profiler_start();*/
 	profile_register_root(run_program_init, 0);
 
 	ScopeProfiler prof{run_program_init};
@@ -1403,7 +1403,13 @@ bool App::OBSInit() {
 	if (!ResetAudio())
 		throw "Failed to initialize audio";
 
-	ret = ResetVideo();
+	auto base_width = (uint32_t)config_get_uint(basicConfig, "Video", "BaseCX");
+	auto base_height = (uint32_t)config_get_uint(basicConfig, "Video", "BaseCY");
+	if (base_width == 0 || base_height == 0) {
+		ret = ResetVideo();
+	} else {
+		ret = ResetVideo(base_width, base_height);
+	}
 
 	switch (ret) {
 	case OBS_VIDEO_MODULE_NOT_FOUND:
@@ -1794,7 +1800,8 @@ void App::ResetOutputs() {
 	const char* mode = config_get_string(basicConfig, "Output", "Mode");
 	bool advOut = astrcmpi(mode, "Advanced") == 0;
 
-	if (outputManager == nullptr) {
+	if (outputManager == nullptr || outputManager->Active()) {
+    outputManager.reset();
 		outputManager = std::make_unique<OutputManager>();
 		std::unique_ptr<BasicOutputHandler> handler;
 		if (advOut) {
@@ -1838,7 +1845,7 @@ int App::ResetVideo(int width, int height) {
 	ovi.gpu_conversion = true;
 	ovi.scale_type = GetScaleType(basicConfig);
 
-  bool need_update = (ovi.base_width != width || ovi.base_height != width);
+	bool need_update = (ovi.base_width != width || ovi.base_height != height);
 
 	if (ovi.base_width < 32 || ovi.base_height < 32 || need_update) {
 		ovi.base_width = width;
