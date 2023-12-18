@@ -7,8 +7,6 @@
 #include <QShowEvent>
 #include <QGuiApplication>
 
-#include "util/profiler.hpp"
-
 #include "../core/app.h"
 #include "../core/output.h"
 #include "../core/display-helpers.h"
@@ -36,7 +34,7 @@ TestMainWindow::TestMainWindow(QWidget* parent)
 	auto dpi = devicePixelRatioF();
 	ui->preview->UpdateDPI(dpi);
 
-	// resize preview when the window is resized
+	// 注册窗口事件
 	connect(windowHandle(), &QWindow::screenChanged, displayResize);
 	connect(ui->preview, &OBSQTDisplay::DisplayResized, displayResize);
 
@@ -44,6 +42,8 @@ TestMainWindow::TestMainWindow(QWidget* parent)
 }
 
 TestMainWindow::~TestMainWindow() {
+	CoreApp->SaveProject();
+
 	// remove draw callback
 	obs_display_remove_draw_callback(ui->preview->GetDisplay(), TestMainWindow::RenderMain,
 					 this);
@@ -52,9 +52,7 @@ TestMainWindow::~TestMainWindow() {
 }
 
 void TestMainWindow::Prepare() {
-	ProfileScope("MainWindow::Prepare");
-
-	// check if preview is enabled
+	// 从配置中读取是否需要显示预览
 	previewEnabled = CoreApp->IsPreviewEnabled();
 	QMetaObject::invokeMethod(this, "EnablePreviewDisplay", Qt::QueuedConnection,
 				  Q_ARG(bool, true));
@@ -87,6 +85,19 @@ void TestMainWindow::Prepare() {
 	}
 
 	// std::thread([this]() { LoadLocalSources(); }).detach();
+
+	// 选中一个
+	ui->sourceTypeComboBox->setCurrentIndex(0);
+	auto audioInputSources = core::AudioSource::GetAudioSources(core::kSourceTypeAudioCapture);
+	for (auto& item : audioInputSources) {
+		ui->sourceComboBox->addItem(item.Name().c_str());
+
+		auto source = std::make_unique<core::AudioSource>(std::move(item));
+		localSources.emplace_back(std::move(source));
+	}
+
+	// 从屏幕捕获时隐藏窗口
+	HideWhileCapturingScreen(this);
 }
 
 bool TestMainWindow::nativeEvent(const QByteArray&, void* message, qintptr*) {
@@ -233,21 +244,21 @@ void TestMainWindow::ConfigureUI() {
 
 				std::unique_ptr<core::RTSPSource> source =
 				  std::make_unique<core::RTSPSource>(url, url);
-        std::string sourceName(source->Name());
+				std::string sourceName(source->Name());
 
 				auto preview = new core::ui::SourcePreview(std::move(source));
 
-        preview->setMinimumSize(480, 270);
-        preview->setWindowTitle(QString::fromStdString(sourceName));
+				preview->setMinimumSize(480, 270);
+				preview->setWindowTitle(QString::fromStdString(sourceName));
 				preview->show();
 			} else {
 				auto& source = localSources[ui->sourceComboBox->currentIndex()];
-        std::string sourceName(source->Name());
+				std::string sourceName(source->Name());
 
 				auto preview = new core::ui::SourcePreview(std::move(source));
 
-        preview->setMinimumSize(480, 270);
-        preview->setWindowTitle(QString::fromStdString(sourceName));
+				preview->setMinimumSize(480, 270);
+				preview->setWindowTitle(QString::fromStdString(sourceName));
 				preview->show();
 			}
 		}
@@ -339,4 +350,15 @@ void TestMainWindow::ConfigureUI() {
 			default: break;
 			}
 		});
+}
+
+void TestMainWindow::HideWhileCapturingScreen(QWidget* window) {
+	HWND hwnd = (HWND)window->winId();
+	DWORD curAffinity;
+	if (GetWindowDisplayAffinity(hwnd, &curAffinity)) {
+		if (curAffinity != WDA_EXCLUDEFROMCAPTURE)
+			SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+		else if (curAffinity != WDA_NONE)
+			SetWindowDisplayAffinity(hwnd, WDA_NONE);
+	}
 }

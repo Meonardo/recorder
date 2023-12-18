@@ -104,7 +104,7 @@
          </size>
         </property>
         <property name="editable">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -187,6 +187,19 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="settingsButton">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>背景设置</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="Line" name="line">
         <property name="orientation">
          <enum>Qt::Vertical</enum>
@@ -216,26 +229,6 @@
         </property>
         <property name="text">
          <string>结束录制</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="Line" name="line_2">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="settingsButton">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>30</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>设置</string>
         </property>
        </widget>
       </item>

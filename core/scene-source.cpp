@@ -260,9 +260,17 @@ std::vector<AudioSource> AudioSource::GetAudioSources(SourceType type) {
 		blog(LOG_ERROR, "enum audio device(%s): %s, id=%s", input ? "input" : "output",
 		     name, id);
 
+    std::string defaultDeviceName = Str("Basic.Settings.Advanced.Audio.MonitoringDevice.Default");
 		std::string name_std_string(name);
+
+    if (defaultDeviceName == name_std_string) { // do not use default device
+      continue;
+    }
+
 		auto type = input ? kSourceTypeAudioCapture : kSourceTypeAudioPlayback;
 		AudioSource item(name, id, type);
+
+    result.push_back(item);
 	}
 
 	// release properties for enum device list.

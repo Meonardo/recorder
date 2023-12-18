@@ -50,4 +50,6 @@ private:
 	static void RenderMain(void* data, uint32_t cx, uint32_t cy);
 
 	void ConfigureUI();
+
+  void HideWhileCapturingScreen(QWidget* window);
 };
