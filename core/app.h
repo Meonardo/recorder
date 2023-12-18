@@ -80,6 +80,10 @@ public:
 	OBSSource GetProgramSource();
 	OBSScene GetCurrentScene();
 
+  // audio & video
+  int ResetVideo(int width = 1920, int height = 1080);
+  bool ResetAudio();
+
 	App(const App&) = delete;
 	App& operator=(const App&) = delete;
 
@@ -154,8 +158,6 @@ private:
 	void DeleteProfile(const std::string& profileName);
 
 	// audio & video
-	int ResetVideo();
-	bool ResetAudio();
 	void GetFPSCommon(uint32_t& num, uint32_t& den) const;
 	void GetFPSInteger(uint32_t& num, uint32_t& den) const;
 	void GetFPSFraction(uint32_t& num, uint32_t& den) const;

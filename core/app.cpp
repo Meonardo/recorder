@@ -1531,15 +1531,6 @@ bool App::InitBasicConfigDefaults() {
 	uint32_t cx = 1920;
 	uint32_t cy = 1080;
 
-	bool oldResolutionDefaults = config_get_bool(GetGlobalConfig(), "General", "Pre19Defaults");
-	/* use 1920x1080 for new default base res if main monitor is above
-   * 1920x1080, but don't apply for people from older builds -- only to
-   * new users */
-	if (!oldResolutionDefaults && (cx * cy) > (1920 * 1080)) {
-		cx = 1920;
-		cy = 1080;
-	}
-
 	bool changed = false;
 
 	/* ----------------------------------------------------- */
@@ -1817,7 +1808,7 @@ void App::ResetOutputs() {
 	}
 }
 
-int App::ResetVideo() {
+int App::ResetVideo(int width, int height) {
 	if (outputManager != nullptr) {
 		if (outputManager->Active()) {
 			return OBS_VIDEO_CURRENTLY_ACTIVE;
@@ -1847,14 +1838,16 @@ int App::ResetVideo() {
 	ovi.gpu_conversion = true;
 	ovi.scale_type = GetScaleType(basicConfig);
 
-	if (ovi.base_width < 32 || ovi.base_height < 32) {
-		ovi.base_width = 1920;
-		ovi.base_height = 1080;
-		config_set_uint(basicConfig, "Video", "BaseCX", 1920);
-		config_set_uint(basicConfig, "Video", "BaseCY", 1080);
+  bool need_update = (ovi.base_width != width || ovi.base_height != width);
+
+	if (ovi.base_width < 32 || ovi.base_height < 32 || need_update) {
+		ovi.base_width = width;
+		ovi.base_height = height;
+		config_set_uint(basicConfig, "Video", "BaseCX", width);
+		config_set_uint(basicConfig, "Video", "BaseCY", height);
 	}
 
-	if (ovi.output_width < 32 || ovi.output_height < 32) {
+	if (ovi.output_width < 32 || ovi.output_height < 32 || need_update) {
 		ovi.output_width = ovi.base_width;
 		ovi.output_height = ovi.base_height;
 		config_set_uint(basicConfig, "Video", "OutputCX", ovi.base_width);

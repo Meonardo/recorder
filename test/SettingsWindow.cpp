@@ -1,5 +1,7 @@
 #include "SettingsWindow.h"
 
+#include "../core/app.h"
+
 #include <map>
 
 static std::map<std::string, std::string> model_map = {
@@ -43,6 +45,21 @@ SettingsWindow::SettingsWindow(const core::Source& source, QWidget* parent)
 		} else {
 			core::RTSPSource rtspSource(source.Name(), source.ID());
 			rtspSource.ApplyBackgroundRemoval("model", false, false);
+		}
+		this->close();
+	});
+
+	connect(ui->ratio169CheckBox, &QCheckBox::clicked, this,
+		[&]() { ui->ratio329CheckBox->setChecked(!ui->ratio169CheckBox->isChecked()); });
+
+	connect(ui->ratio329CheckBox, &QCheckBox::clicked, this,
+		[&]() { ui->ratio169CheckBox->setChecked(!ui->ratio329CheckBox->isChecked()); });
+
+	connect(ui->saveButton, &QPushButton::clicked, this, [&]() {
+		if (ui->ratio169CheckBox->isChecked()) {
+			CoreApp->ResetVideo(1920, 1080);
+		} else if (ui->ratio329CheckBox->isChecked()) {
+			CoreApp->ResetVideo(3840, 1080);
 		}
 		this->close();
 	});
