@@ -12,6 +12,8 @@
 #include "../core/display-helpers.h"
 #include "../core/source-preview.h"
 
+#include "SettingsWindow.h"
+
 TestMainWindow::TestMainWindow(QWidget* parent)
   : QMainWindow(parent),
     ui(new Ui::TestMainWindowClass()) {
@@ -281,7 +283,17 @@ void TestMainWindow::ConfigureUI() {
 		[&]() { CoreApp->GetOutputManager()->StopRecording(); });
 
 	connect(ui->settingsButton, &QPushButton::clicked, this, [&]() {
+		auto idx = ui->attachedSourceComboBox->currentIndex();
+		if (idx < 0) {
+			return;
+		}
 
+		auto& source = attachedSources[idx];
+		if (source.Type() == core::kSourceTypeRTSP ||
+		    source.Type() == core::kSourceTypeCamera) {
+			auto settingsWindow = new SettingsWindow(source);
+			settingsWindow->show();
+		}
 	});
 
 	connect(ui->sourceTypeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,

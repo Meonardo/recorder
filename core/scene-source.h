@@ -135,6 +135,8 @@ public:
 	virtual ~RTSPSource() {}
 
 	virtual obs_data_t* Properties() override;
+
+  bool ApplyBackgroundRemoval(const std::string& model, bool forceCPU, bool enable);
 };
 
 class CameraSource : public Source {
@@ -154,6 +156,8 @@ public:
 	const std::string& GetSelectedResolution() const { return selected_resolution; }
 	const std::vector<std::tuple<std::string, int64_t>>& GetAvailableFps() const { return fps; }
 	const std::tuple<std::string, int64_t>& GetSelectedFps() const { return selected_fps; }
+
+  bool ApplyBackgroundRemoval(const std::string& model, bool forceCPU, bool enable);
 
 private:
 	std::vector<std::string> resolutions;

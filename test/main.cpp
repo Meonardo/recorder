@@ -1,6 +1,5 @@
 #include "../core/app.h"
 
-#include "test.h"
 #include "TestMainWindow.h"
 
 typedef std::function<void(bool finished)> VoidFunc;
@@ -32,11 +31,7 @@ private:
 	VoidFunc cb;
 };
 
-#if TEST
 int main(int argc, char* argv[]) {
-#else
-int main2(int argc, char* argv[]) {
-#endif
 	TestApp app(argc, argv);
   app.setQuitOnLastWindowClosed(false);
 

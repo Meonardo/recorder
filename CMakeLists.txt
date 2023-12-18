@@ -63,7 +63,10 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.ui
   ${CMAKE_CURRENT_SOURCE_DIR}/test/main.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/test/test.h
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/SettingsWindow.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/SettingsWindow.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/SettingsWindow.ui
 )
 
 find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)

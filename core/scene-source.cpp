@@ -260,17 +260,18 @@ std::vector<AudioSource> AudioSource::GetAudioSources(SourceType type) {
 		blog(LOG_ERROR, "enum audio device(%s): %s, id=%s", input ? "input" : "output",
 		     name, id);
 
-    std::string defaultDeviceName = Str("Basic.Settings.Advanced.Audio.MonitoringDevice.Default");
+		std::string defaultDeviceName =
+		  Str("Basic.Settings.Advanced.Audio.MonitoringDevice.Default");
 		std::string name_std_string(name);
 
-    if (defaultDeviceName == name_std_string) { // do not use default device
-      continue;
-    }
+		if (defaultDeviceName == name_std_string) { // do not use default device
+			continue;
+		}
 
 		auto type = input ? kSourceTypeAudioCapture : kSourceTypeAudioPlayback;
 		AudioSource item(name, id, type);
 
-    result.push_back(item);
+		result.push_back(item);
 	}
 
 	// release properties for enum device list.
@@ -427,6 +428,53 @@ bool CameraSource::SelectFps(uint32_t idx) {
 	return true;
 }
 
+bool CameraSource::ApplyBackgroundRemoval(const std::string& model, bool forceCPU, bool enable) {
+	obs_source_t* input = obs_get_source_by_name(name.c_str());
+	if (!input) {
+		blog(LOG_ERROR, "the source with name(%s) not exist!\n", name.c_str());
+		return false;
+	}
+
+	if (obs_source_get_type(input) != OBS_SOURCE_TYPE_INPUT) {
+		obs_source_release(input);
+		blog(LOG_ERROR, "the source with name(%s) is not an input!\n", name.c_str());
+		return false;
+	}
+
+	const char* filterName = "background removal";
+	const char* filterKind = "background_removal";
+	OBSSourceAutoRelease existingFilter = obs_source_get_filter_by_name(input, filterName);
+	if (existingFilter != nullptr) {
+		// remove it first
+		blog(LOG_INFO, "filter exists, remove it first!");
+		obs_source_filter_remove(input, existingFilter);
+		if (!enable) {
+			return true;
+		}
+	}
+
+	std::string modelPath("models/");
+	modelPath += model;
+
+	obs_data_t* filterSettings = obs_data_create();
+	obs_data_set_string(filterSettings, "model_select", modelPath.c_str());
+	if (forceCPU) {
+		obs_data_set_string(filterSettings, "useGPU", "cpu");
+	}
+	obs_data_set_int(filterSettings, "numThreads", 1);
+
+	obs_source_t* filter = obs_source_create_private(filterKind, filterName, filterSettings);
+
+	if (!filter) {
+		blog(LOG_ERROR, "can not create the filter!");
+		return false;
+	}
+
+	obs_source_filter_add(input, filter);
+
+	return true;
+}
+
 std::vector<ScreenSource> ScreenSource::GetScreenSources() {
 	auto result = std::vector<ScreenSource>();
 
@@ -515,6 +563,53 @@ obs_data_t* RTSPSource::Properties() {
 	obs_data_set_bool(data, "stop_on_hide", true);
 
 	return data;
+}
+
+bool RTSPSource::ApplyBackgroundRemoval(const std::string& model, bool forceCPU, bool enable) {
+	obs_source_t* input = obs_get_source_by_name(name.c_str());
+	if (!input) {
+		blog(LOG_ERROR, "the source with name(%s) not exist!\n", name.c_str());
+		return false;
+	}
+
+	if (obs_source_get_type(input) != OBS_SOURCE_TYPE_INPUT) {
+		obs_source_release(input);
+		blog(LOG_ERROR, "the source with name(%s) is not an input!\n", name.c_str());
+		return false;
+	}
+
+	const char* filterName = "background removal";
+	const char* filterKind = "background_removal";
+	OBSSourceAutoRelease existingFilter = obs_source_get_filter_by_name(input, filterName);
+	if (existingFilter != nullptr) {
+		// remove it first
+		blog(LOG_INFO, "filter exists, remove it first!");
+		obs_source_filter_remove(input, existingFilter);
+		if (!enable) {
+			return true;
+		}
+	}
+
+	std::string modelPath("models/");
+	modelPath += model;
+
+	obs_data_t* filterSettings = obs_data_create();
+	obs_data_set_string(filterSettings, "model_select", modelPath.c_str());
+	if (forceCPU) {
+		obs_data_set_string(filterSettings, "useGPU", "cpu");
+	}
+	obs_data_set_int(filterSettings, "numThreads", 1);
+
+	obs_source_t* filter = obs_source_create_private(filterKind, filterName, filterSettings);
+
+	if (!filter) {
+		blog(LOG_ERROR, "can not create the filter!");
+		return false;
+	}
+
+	obs_source_filter_add(input, filter);
+
+	return true;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
