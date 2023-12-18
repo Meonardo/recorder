@@ -66,4 +66,10 @@ const char* InputAudioSource();
 const char* OutputAudioSource();
 
 char* get_new_source_name(const char* name, const char* format);
+
+bool GetDataFilePath(const char* data, std::string& path);
+
+std::vector<std::string> GetUserPreferredLocales();
+std::vector<std::string> GetPreferredLocales();
+
 } // namespace core

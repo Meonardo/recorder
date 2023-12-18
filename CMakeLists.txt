@@ -55,41 +55,17 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/test/main.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/test.h
 
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-main.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/MainWindow.ui
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/SourceDuplicatorWindow.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/SourceDuplicatorWindow.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/SourceDuplicatorWindow.ui
-
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-preview.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-preview.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-display.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-display.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-wrappers.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/qt-wrappers.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/display-helpers.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-app.hpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-app.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/api-interface.cpp
+  # ${CMAKE_CURRENT_SOURCE_DIR}/src/api-interface.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/platform.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/platform-windows.cpp
-
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-main-profiles.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-main-outputs.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/window-basic-main-outputs.hpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/audio-encoders.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/audio-encoders.cpp
 
   ${CMAKE_CURRENT_SOURCE_DIR}/src/win-dll-blocklist.c
-
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-source-manager.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-source-manager.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-sources.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/obs-sources.cpp
 )
 
 find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)

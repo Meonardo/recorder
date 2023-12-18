@@ -12,6 +12,8 @@
 
 #include "defines.h"
 
+#include "obs-config.h"
+
 namespace core {
 struct BaseLexer {
 	lexer lex;
@@ -875,4 +877,90 @@ char* get_new_source_name(const char* name, const char* format) {
 
 	return new_name.array;
 }
+
+std::vector<std::string> GetUserPreferredLocales() {
+	std::vector<std::string> result;
+
+	ULONG num, length = 0;
+	if (!GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &num, nullptr, &length))
+		return result;
+
+	std::vector<wchar_t> buffer(length);
+	if (!GetUserPreferredUILanguages(MUI_LANGUAGE_NAME, &num, &buffer.front(), &length))
+		return result;
+
+	result.reserve(num);
+	auto start = begin(buffer);
+	auto end_ = end(buffer);
+	decltype(start) separator;
+	while ((separator = find(start, end_, 0)) != end_) {
+		if (result.size() == num)
+			break;
+
+		char conv[MAX_PATH] = {};
+		os_wcs_to_utf8(&*start, separator - start, conv, MAX_PATH);
+
+		result.emplace_back(conv);
+
+		start = separator + 1;
+	}
+
+	return result;
+}
+
+std::vector<std::string> GetPreferredLocales() {
+	std::vector<std::string> windows_locales = GetUserPreferredLocales();
+	auto obs_locales = GetLocaleNames();
+	auto windows_to_obs = [&obs_locales](std::string windows) {
+		std::string lang_match;
+
+		for (auto& locale_pair : obs_locales) {
+			auto& locale = locale_pair.first;
+			if (locale == windows.substr(0, locale.size()))
+				return locale;
+
+			if (lang_match.size())
+				continue;
+
+			if (locale.substr(0, 2) == windows.substr(0, 2))
+				lang_match = locale;
+		}
+
+		return lang_match;
+	};
+
+	std::vector<std::string> result;
+	result.reserve(obs_locales.size());
+
+	for (const std::string& locale : windows_locales) {
+		std::string match = windows_to_obs(locale);
+		if (!match.size())
+			continue;
+
+		if (find(begin(result), end(result), match) != end(result))
+			continue;
+
+		result.emplace_back(match);
+	}
+
+	return result;
+}
+
+static inline bool check_path(const char* data, const char* path, std::string& output) {
+	std::ostringstream str;
+	str << path << data;
+	output = str.str();
+
+	blog(LOG_DEBUG, "Attempted path: %s", output.c_str());
+
+	return os_file_exists(output.c_str());
+}
+
+bool GetDataFilePath(const char* data, std::string& output) {
+	if (check_path(data, "data/recorder/", output))
+		return true;
+
+	return check_path(data, OBS_DATA_PATH "/recorder/", output);
+}
+
 } // namespace core

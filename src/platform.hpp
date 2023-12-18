@@ -24,10 +24,6 @@
 
 #include <Windows.h>
 
-/* Gets the path of obs-studio specific data files (such as locale) */
-bool GetDataFilePath(const char* data, std::string& path);
-std::vector<std::string> GetPreferredLocales();
-
 std::string GetDefaultVideoSavePath();
 
 bool SetDisplayAffinitySupported(void);
