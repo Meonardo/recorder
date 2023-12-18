@@ -5,6 +5,8 @@
 #include <QAction>
 #include <QThread>
 
+#include "../core/scene-source.h"
+
 #include "ui_TestMainWindow.h"
 
 #define PREVIEW_EDGE_SIZE 10
@@ -19,7 +21,7 @@ public:
 	TestMainWindow(QWidget* parent = nullptr);
 	~TestMainWindow();
 
-  void Prepare();
+	void Prepare();
 
 protected:
 	virtual bool nativeEvent(const QByteArray& eventType, void* message,
@@ -28,20 +30,26 @@ protected:
 
 private:
 	Ui::TestMainWindowClass* ui;
-  bool previewEnabled = true;
+	bool previewEnabled = true;
 
-  // preview
-  int previewX = 0, previewY = 0;
-  int previewCX = 0, previewCY = 0;
-  float previewScale = 0.0f;
+	// preview
+	int previewX = 0, previewY = 0;
+	int previewCX = 0, previewCY = 0;
+	float previewScale = 0.0f;
 
-  bool drawSafeAreas = false;
-  bool drawSpacingHelpers = true;
+	bool drawSafeAreas = false;
+	bool drawSpacingHelpers = true;
 
-  void EnablePreviewDisplay(bool enable);
-  void ResizePreview(uint32_t cx, uint32_t cy);
+	std::vector<std::unique_ptr<core::Source>> localSources;
 
-  static void RenderMain(void* data, uint32_t cx, uint32_t cy);
+	std::vector<core::Source> attachedSources;
 
-  void LoadLocalSources();
+	void EnablePreviewDisplay(bool enable);
+	void ResizePreview(uint32_t cx, uint32_t cy);
+
+	static void RenderMain(void* data, uint32_t cx, uint32_t cy);
+
+	void ConfigureUI();
+
+	void LoadLocalSources();
 };

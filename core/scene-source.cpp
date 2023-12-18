@@ -654,7 +654,6 @@ bool Source::Attach() {
 	obs_sceneitem_t* sceneItem = CreateSceneItem(input, scene, true, nullptr, nullptr);
 	if (sceneItem == nullptr) {
 		blog(LOG_ERROR, "create scene item failed!");
-		blog(LOG_ERROR, "create scene item failed!");
 		return false;
 	}
 

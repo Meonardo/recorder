@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <memory>
+
 #include <obs.hpp>
 
 namespace core {
@@ -109,5 +111,56 @@ protected:
 
 BasicOutputHandler* CreateSimpleOutputHandler(OutputCallback* callback);
 BasicOutputHandler* CreateAdvancedOutputHandler(OutputCallback* callback);
+
+class OutputManager : public OutputCallback {
+public:
+	OutputManager();
+	~OutputManager();
+
+  void SetOutputHandler(std::unique_ptr<BasicOutputHandler> handler);
+  void Update();
+  bool Active();
+
+	void SetStreamAddress(const std::string& addr, const std::string& username,
+			      const std::string& passwd);
+	void GetSteamAddress(const std::string& address, const std::string& username,
+			     const std::string& passwd);
+
+	void StartStreaming();
+	void StopStreaming();
+
+	void StartRecording();
+	void StopRecording();
+
+	void StartReplayBuffer();
+	void StopReplayBuffer();
+
+	void StartVirtualCam();
+	void StopVirtualCam();
+
+	void SetCurrentRecordingFolder(const char* path);
+    
+	void OnStreamDelayStarting(int seconds) override;
+	void OnStreamDelayStopping(int seconds) override;
+	void OnStreamStarted() override;
+	void OnStreamStopped(std::string error, int code) override;
+
+	void OnRecordingStarted() override;
+	void OnRecordingStopping() override;
+	void OnRecordingStopped(std::string error, int code) override;
+	void OnRecordingFileChanged(std::string path) override;
+
+	void OnReplayBufferStarted() override;
+	void OnReplayBufferStopping() override;
+	void OnReplayBufferStopped(std::string error, int code) override;
+	void OnReplayBufferSaved() override;
+
+	void OnVirtualCamStarted() override;
+	void OnVirtualCamDeactivated() override;
+	void OnVirtualCamStopped(std::string error, int code) override;
+
+private:
+  std::unique_ptr<BasicOutputHandler> outputHandler;
+};
 
 } // namespace core

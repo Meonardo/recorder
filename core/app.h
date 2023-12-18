@@ -39,7 +39,7 @@ struct LaunchOptions {
 
 /// forward declares
 struct BasicOutputHandler;
-class OutputCallback;
+class OutputManager;
 
 class App {
 	friend class SceneSourceManager;
@@ -51,7 +51,7 @@ public:
 	}
 
 	int Run(int argc, char* argv[], UIApplication* application);
-  void Quit();
+	void Quit();
 	~App();
 
 	inline config_t* GetGlobalConfig() const { return globalConfig; }
@@ -60,13 +60,14 @@ public:
 		return textLookup.GetString(lookupVal);
 	}
 	inline ConfigFile& GetBasicConfig() { return basicConfig; }
-	inline void SetOutputCallback(OutputCallback* callback) { outputCallback = callback; }
 	inline bool IsPreviewProgramMode() const {
 		return os_atomic_load_bool(&previewProgramMode);
 	}
 	inline bool IsPreviewEnabled() const { return previewEnabled; }
 
 	profiler_name_store_t* GetProfilerNameStore() const { return profilerNameStore; }
+
+	OutputManager* GetOutputManager() const { return outputManager.get(); }
 
 	obs_service_t* GetService();
 
@@ -89,7 +90,8 @@ private:
 	profiler_name_store_t* profilerNameStore = nullptr;
 	os_inhibit_t* sleepInhibitor = nullptr;
 	UIApplication* application = nullptr;
-	OutputCallback* outputCallback = nullptr;
+
+	std::unique_ptr<OutputManager> outputManager = nullptr;
 	std::unique_ptr<SceneSourceManager> sceneSourceManager = nullptr;
 
 	volatile bool previewProgramMode = false;
@@ -120,7 +122,6 @@ private:
 	std::atomic<obs_scene_t*> currentScene = nullptr;
 
 	// output & services
-	std::unique_ptr<BasicOutputHandler> outputHandler;
 	OBSService service;
 
 	// transitions

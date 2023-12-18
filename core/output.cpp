@@ -76,12 +76,18 @@ static void OBSStopRecording(void* data, calldata_t* params) {
 	core::BasicOutputHandler* output = static_cast<core::BasicOutputHandler*>(data);
 	int code = (int)calldata_int(params, "code");
 	const char* last_error = calldata_string(params, "last_error");
+  std::string error(last_error);
 
 	output->recordingActive = false;
 	os_atomic_set_bool(&recording_active, false);
 	os_atomic_set_bool(&recording_paused, false);
 
-	output->callback->OnRecordingStopped(last_error, code);
+  if (code || !error.empty()) {
+    output->callback->OnRecordingStopped(error, code);
+    return;
+  }
+
+  output->callback->OnRecordingStopped("", code);
 }
 
 static void OBSRecordStopping(void* data, calldata_t* /* params */) {
@@ -150,6 +156,184 @@ static void OBSDeactivateVirtualCam(void* data, calldata_t* /* params */) {
 
 	output->callback->OnVirtualCamDeactivated();
 }
+
+static const char* GetCurrentOutputPath() {
+	const char* path = nullptr;
+	const char* mode = config_get_string(CoreApp->GetBasicConfig(), "Output", "Mode");
+
+	if (strcmp(mode, "Advanced") == 0) {
+		const char* advanced_mode =
+		  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecType");
+
+		if (strcmp(advanced_mode, "FFmpeg") == 0) {
+			path = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFFilePath");
+		} else {
+			path =
+			  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecFilePath");
+		}
+	} else {
+		path = config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "FilePath");
+	}
+
+	return path;
+}
+
+static bool OutputPathValid() {
+	const char* mode = config_get_string(CoreApp->GetBasicConfig(), "Output", "Mode");
+	if (strcmp(mode, "Advanced") == 0) {
+		const char* advanced_mode =
+		  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecType");
+		if (strcmp(advanced_mode, "FFmpeg") == 0) {
+			bool is_local =
+			  config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "FFOutputToFile");
+			if (!is_local)
+				return true;
+		}
+	}
+
+	const char* path = GetCurrentOutputPath();
+	return path && *path;
+}
+
+OutputManager::OutputManager() {}
+
+OutputManager::~OutputManager() {}
+
+void OutputManager::SetOutputHandler(std::unique_ptr<BasicOutputHandler> handler) {
+	outputHandler = std::move(handler);
+}
+
+void OutputManager::Update() {
+	if (outputHandler) {
+		outputHandler->Update();
+	}
+}
+
+bool OutputManager::Active() {
+	if (outputHandler) {
+		return outputHandler->Active();
+	}
+	return false;
+}
+
+void OutputManager::SetStreamAddress(const std::string& addr, const std::string& username,
+				     const std::string& passwd) {}
+
+void OutputManager::GetSteamAddress(const std::string& address, const std::string& username,
+				    const std::string& passwd) {}
+
+void OutputManager::StartStreaming() {}
+
+void OutputManager::StopStreaming() {}
+
+void OutputManager::StartRecording() {
+	if (outputHandler->RecordingActive())
+		return;
+
+	if (!OutputPathValid()) {
+		blog(LOG_ERROR, "Recording stopped because of bad output path");
+		return;
+	}
+
+	/*if (LowDiskSpace()) {
+    DiskSpaceMessage();
+    return;
+  }*/
+
+	CoreApp->SaveProject();
+
+	if (!outputHandler->StartRecording()) {
+		blog(LOG_ERROR, "Failed to start recording");
+	}
+}
+
+void OutputManager::StopRecording() {
+	CoreApp->SaveProject();
+
+	if (outputHandler->RecordingActive())
+		outputHandler->StopRecording();
+}
+
+void OutputManager::StartReplayBuffer() {}
+
+void OutputManager::StopReplayBuffer() {}
+
+void OutputManager::StartVirtualCam() {
+	if (!outputHandler || !outputHandler->virtualCam) {
+		blog(LOG_ERROR, "Can not start virtual camera is not active");
+		return;
+	}
+
+	if (outputHandler->VirtualCamActive()) {
+		blog(LOG_ERROR, "Virtual camera is not active");
+		return;
+	}
+
+	CoreApp->SaveProject();
+
+	if (!outputHandler->StartVirtualCam()) {
+		blog(LOG_ERROR, "Failed to start virtual camera");
+	}
+}
+
+void OutputManager::StopVirtualCam() {
+	if (!outputHandler || !outputHandler->virtualCam) {
+		blog(LOG_ERROR, "Can not stop virtual camera is not active");
+		return;
+	}
+
+	CoreApp->SaveProject();
+
+	if (!outputHandler->VirtualCamActive()) {
+		blog(LOG_ERROR, "Failed to stop virtual camera");
+		return;
+	}
+
+	outputHandler->StopVirtualCam();
+}
+
+void OutputManager::SetCurrentRecordingFolder(const char* path) {
+  if (!strlen(path)) {
+    blog(LOG_ERROR, "Can not set recording folder to empty path");
+    return;
+  }
+
+  auto& profile = CoreApp->GetBasicConfig();
+  config_set_string(profile, "AdvOut", "RecFilePath", path);
+  config_set_string(profile, "SimpleOutput", "FilePath", path);
+  config_save(profile);
+}
+
+void OutputManager::OnStreamDelayStarting(int seconds) {}
+
+void OutputManager::OnStreamDelayStopping(int seconds) {}
+
+void OutputManager::OnStreamStarted() {}
+
+void OutputManager::OnStreamStopped(std::string error, int code) {}
+
+void OutputManager::OnRecordingStarted() {}
+
+void OutputManager::OnRecordingStopping() {}
+
+void OutputManager::OnRecordingStopped(std::string error, int code) {}
+
+void OutputManager::OnRecordingFileChanged(std::string path) {}
+
+void OutputManager::OnReplayBufferStarted() {}
+
+void OutputManager::OnReplayBufferStopping() {}
+
+void OutputManager::OnReplayBufferStopped(std::string error, int code) {}
+
+void OutputManager::OnReplayBufferSaved() {}
+
+void OutputManager::OnVirtualCamStarted() {}
+
+void OutputManager::OnVirtualCamDeactivated() {}
+
+void OutputManager::OnVirtualCamStopped(std::string error, int code) {}
+
 } // namespace core
 /* ------------------------------------------------------------------------ */
 
@@ -948,7 +1132,8 @@ bool SimpleOutput::StartStreaming(obs_service_t* service) {
 	bool enableLowLatencyMode =
 	  config_get_bool(CoreApp->GetBasicConfig(), "Output", "LowLatencyEnable");
 #endif
-	bool enableDynBitrate = config_get_bool(CoreApp->GetBasicConfig(), "Output", "DynamicBitrate");
+	bool enableDynBitrate =
+	  config_get_bool(CoreApp->GetBasicConfig(), "Output", "DynamicBitrate");
 
 	OBSDataAutoRelease settings = obs_data_create();
 	obs_data_set_string(settings, "bind_ip", bindIP);
@@ -1044,7 +1229,8 @@ bool SimpleOutput::ConfigureRecording(bool updateReplayBuffer) {
 	const char* path = config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "FilePath");
 	const char* format =
 	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecFormat2");
-	const char* mux = config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "MuxerCustom");
+	const char* mux =
+	  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "MuxerCustom");
 	bool noSpace =
 	  config_get_bool(CoreApp->GetBasicConfig(), "SimpleOutput", "FileNameWithoutSpace");
 	const char* filenameFormat =
@@ -1251,7 +1437,8 @@ static void translate_macvth264_encoder(const char*& encoder) {
 
 AdvancedOutput::AdvancedOutput(OutputCallback* cb) : BasicOutputHandler(cb) {
 	const char* recType = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecType");
-	const char* streamEncoder = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "Encoder");
+	const char* streamEncoder =
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "Encoder");
 	const char* streamAudioEncoder =
 	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "AudioEncoder");
 	const char* recordEncoder =
@@ -1279,7 +1466,8 @@ AdvancedOutput::AdvancedOutput(OutputCallback* cb) : BasicOutputHandler(cb) {
 			throw "Failed to create recording FFmpeg output "
 			      "(advanced output)";
 	} else {
-		bool useReplayBuffer = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "RecRB");
+		bool useReplayBuffer =
+		  config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "RecRB");
 		if (useReplayBuffer) {
 			OBSDataAutoRelease hotkey;
 			const char* str =
@@ -1384,7 +1572,8 @@ void AdvancedOutput::UpdateStreamSettings() {
 	bool enforceBitrate =
 	  !config_get_bool(CoreApp->GetBasicConfig(), "Stream1", "IgnoreRecommended");
 	bool dynBitrate = config_get_bool(CoreApp->GetBasicConfig(), "Output", "DynamicBitrate");
-	const char* streamEncoder = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "Encoder");
+	const char* streamEncoder =
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "Encoder");
 
 	OBSData settings = GetDataFromJsonFile("streamEncoder.json");
 	ApplyEncoderDefaults(settings, videoStreaming);
@@ -1447,7 +1636,8 @@ static inline bool ServiceSupportsVodTrack(const char* service) {
 
 inline void AdvancedOutput::SetupStreaming() {
 	bool rescale = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "Rescale");
-	const char* rescaleRes = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RescaleRes");
+	const char* rescaleRes =
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RescaleRes");
 	unsigned int cx = 0;
 	unsigned int cy = 0;
 
@@ -1476,7 +1666,8 @@ inline void AdvancedOutput::SetupRecording() {
 	const char* rescaleRes =
 	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecRescaleRes");
 
-	const char* recFormat = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecFormat2");
+	const char* recFormat =
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecFormat2");
 
 	bool is_fragmented = strncmp(recFormat, "fragmented", 10) == 0;
 	bool flv = strcmp(recFormat, "flv") == 0;
@@ -1568,12 +1759,14 @@ inline void AdvancedOutput::SetupFFmpeg() {
 	const char* muxCustom = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFMCustom");
 	const char* vEncoder = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFVEncoder");
 	auto vEncoderId = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FFVEncoderId");
-	const char* vEncCustom = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFVCustom");
+	const char* vEncCustom =
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFVCustom");
 	auto aBitrate = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FFABitrate");
 	auto aMixes = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FFAudioMixes");
 	const char* aEncoder = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFAEncoder");
 	auto aEncoderId = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "FFAEncoderId");
-	const char* aEncCustom = config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFACustom");
+	const char* aEncCustom =
+	  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "FFACustom");
 	OBSDataAutoRelease settings = obs_data_create();
 
 	obs_data_set_string(settings, "url", url);
@@ -1691,7 +1884,8 @@ int AdvancedOutput::GetAudioBitrate(size_t i, const char* id) const {
 
 inline void AdvancedOutput::SetupVodTrack(obs_service_t* service) {
 	int streamTrack = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "TrackIndex");
-	bool vodTrackEnabled = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "VodTrackEnabled");
+	bool vodTrackEnabled =
+	  config_get_bool(CoreApp->GetBasicConfig(), "AdvOut", "VodTrackEnabled");
 	int vodTrackIndex = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "VodTrackIndex");
 	bool enableForCustomServer =
 	  config_get_bool(CoreApp->GetGlobalConfig(), "General", "EnableCustomServerVodTrack");
@@ -1780,7 +1974,8 @@ bool AdvancedOutput::StartStreaming(obs_service_t* service) {
 	bool enableLowLatencyMode =
 	  config_get_bool(CoreApp->GetBasicConfig(), "Output", "LowLatencyEnable");
 #endif
-	bool enableDynBitrate = config_get_bool(CoreApp->GetBasicConfig(), "Output", "DynamicBitrate");
+	bool enableDynBitrate =
+	  config_get_bool(CoreApp->GetBasicConfig(), "Output", "DynamicBitrate");
 
 	OBSDataAutoRelease settings = obs_data_create();
 	obs_data_set_string(settings, "bind_ip", bindIP);
@@ -1864,16 +2059,16 @@ bool AdvancedOutput::StartRecording() {
 		obs_data_set_string(settings, ffmpegRecording ? "url" : "path", strPath.c_str());
 
 		if (splitFile) {
-			splitFileType =
-			  config_get_string(CoreApp->GetBasicConfig(), "AdvOut", "RecSplitFileType");
-			splitFileTime =
-			  (astrcmpi(splitFileType, "Time") == 0)
-			    ? config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "RecSplitFileTime")
-			    : 0;
-			splitFileSize =
-			  (astrcmpi(splitFileType, "Size") == 0)
-			    ? config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "RecSplitFileSize")
-			    : 0;
+			splitFileType = config_get_string(CoreApp->GetBasicConfig(), "AdvOut",
+							  "RecSplitFileType");
+			splitFileTime = (astrcmpi(splitFileType, "Time") == 0)
+					  ? config_get_int(CoreApp->GetBasicConfig(), "AdvOut",
+							   "RecSplitFileTime")
+					  : 0;
+			splitFileSize = (astrcmpi(splitFileType, "Size") == 0)
+					  ? config_get_int(CoreApp->GetBasicConfig(), "AdvOut",
+							   "RecSplitFileSize")
+					  : 0;
 			std::string ext = GetFormatExt(recFormat);
 			obs_data_set_string(settings, "directory", path);
 			obs_data_set_string(settings, "format", filenameFormat);
@@ -1934,8 +2129,10 @@ bool AdvancedOutput::StartReplayBuffer() {
 		noSpace = config_get_bool(CoreApp->GetBasicConfig(), "AdvOut",
 					  ffmpegRecording ? "FFFileNameWithoutSpace"
 							  : "RecFileNameWithoutSpace");
-		rbPrefix = config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRBPrefix");
-		rbSuffix = config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRBSuffix");
+		rbPrefix =
+		  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRBPrefix");
+		rbSuffix =
+		  config_get_string(CoreApp->GetBasicConfig(), "SimpleOutput", "RecRBSuffix");
 		rbTime = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "RecRBTime");
 		rbSize = config_get_int(CoreApp->GetBasicConfig(), "AdvOut", "RecRBSize");
 

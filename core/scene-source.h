@@ -70,7 +70,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 enum SourceType {
-	kSourceTypeUnknow = 1,
+	kSourceTypeUnknow = 0,
 	kSourceTypeAudioCapture,
 	kSourceTypeAudioPlayback,
 	kSourceTypeScreenCapture,

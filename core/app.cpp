@@ -1036,7 +1036,7 @@ int App::Run(int argc, char* argv[], UIApplication* application) {
 
 	int ret = RunMain(logFile, argc, argv);
 
-  Quit();
+	Quit();
 
 	if (hRtwq) {
 		typedef HRESULT(STDAPICALLTYPE * PFN_RtwqShutdown)();
@@ -1054,11 +1054,11 @@ int App::Run(int argc, char* argv[], UIApplication* application) {
 }
 
 void App::Quit() {
-  obs_hotkey_set_callback_routing_func(nullptr, nullptr);
+	obs_hotkey_set_callback_routing_func(nullptr, nullptr);
 
 	sceneSourceManager.reset();
 	service = nullptr;
-	outputHandler.reset();
+	outputManager.reset();
 
 	bool disableAudioDucking = config_get_bool(globalConfig, "Audio", "DisableAudioDucking");
 	if (disableAudioDucking)
@@ -1803,20 +1803,26 @@ void App::ResetOutputs() {
 	const char* mode = config_get_string(basicConfig, "Output", "Mode");
 	bool advOut = astrcmpi(mode, "Advanced") == 0;
 
-	if (!outputHandler || !outputHandler->Active()) {
-		outputHandler.reset();
-		outputHandler.reset(advOut ? CreateAdvancedOutputHandler(outputCallback)
-					   : CreateSimpleOutputHandler(outputCallback));
-
-		if (outputHandler->replayBuffer) {}
+	if (outputManager == nullptr) {
+		outputManager = std::make_unique<OutputManager>();
+		std::unique_ptr<BasicOutputHandler> handler;
+		if (advOut) {
+			handler.reset(CreateAdvancedOutputHandler(outputManager.get()));
+		} else {
+			handler.reset(CreateSimpleOutputHandler(outputManager.get()));
+		}
+		outputManager->SetOutputHandler(std::move(handler));
 	} else {
-		outputHandler->Update();
+		outputManager->Update();
 	}
 }
 
 int App::ResetVideo() {
-	if (outputHandler && outputHandler->Active())
-		return OBS_VIDEO_CURRENTLY_ACTIVE;
+	if (outputManager != nullptr) {
+		if (outputManager->Active()) {
+			return OBS_VIDEO_CURRENTLY_ACTIVE;
+		}
+	}
 
 	ProfileScope("MainWindow::ResetVideo");
 
@@ -2026,7 +2032,7 @@ bool App::LoadService() {
 	type = obs_data_get_string(data, "type");
 
 	OBSDataAutoRelease settings = obs_data_get_obj(data, "settings");
-  OBSDataAutoRelease hotkey_data = obs_data_get_obj(data, "hotkeys");
+	OBSDataAutoRelease hotkey_data = obs_data_get_obj(data, "hotkeys");
 
 	service = obs_service_create(type, "default_service", settings, hotkey_data);
 	obs_service_release(service);

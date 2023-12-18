@@ -10,15 +10,15 @@
 #include "util/profiler.hpp"
 
 #include "../core/app.h"
+#include "../core/output.h"
 #include "../display-helpers.hpp"
-#include "../core/scene-source.h"
 
 TestMainWindow::TestMainWindow(QWidget* parent)
   : QMainWindow(parent),
     ui(new Ui::TestMainWindowClass()) {
 
 	setAttribute(Qt::WA_NativeWindow);
-  setAttribute(Qt::WA_DeleteOnClose);
+	setAttribute(Qt::WA_DeleteOnClose);
 
 	ui->setupUi(this);
 
@@ -38,20 +38,16 @@ TestMainWindow::TestMainWindow(QWidget* parent)
 	// resize preview when the window is resized
 	connect(windowHandle(), &QWindow::screenChanged, displayResize);
 	connect(ui->preview, &OBSQTDisplay::DisplayResized, displayResize);
+
+	ConfigureUI();
 }
 
 TestMainWindow::~TestMainWindow() {
-  /* clear out UI event queue */
-  QApplication::sendPostedEvents(nullptr);
-  QApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-
 	// remove draw callback
 	obs_display_remove_draw_callback(ui->preview->GetDisplay(), TestMainWindow::RenderMain,
 					 this);
 
-  QApplication::sendPostedEvents(nullptr);
-
-  delete ui;
+	delete ui;
 }
 
 void TestMainWindow::Prepare() {
@@ -75,11 +71,20 @@ void TestMainWindow::Prepare() {
 	};
 	connect(ui->preview, &OBSQTDisplay::DisplayCreated, addDisplay);
 
-	// show this window
+	// 显示窗口
 	show();
 	activateWindow();
+	ui->attachedSourceComboBox->clear();
 
-	// load all local sources, may be run this in a separate thread ?
+	attachedSources.clear();
+
+	// 加载已经保存的数据源
+	auto sources = core::Source::GetAttachedSources();
+	for (const auto& item : sources) {
+		attachedSources.push_back(item);
+		ui->attachedSourceComboBox->addItem(item.Name().c_str());
+	}
+
 	// std::thread([this]() { LoadLocalSources(); }).detach();
 }
 
@@ -187,6 +192,128 @@ void TestMainWindow::RenderMain(void* data, uint32_t, uint32_t) {
 	GS_DEBUG_MARKER_END();
 }
 
+void TestMainWindow::ConfigureUI() {
+	connect(ui->sourceAddButton, &QPushButton::clicked, this, [&]() {
+		auto idx = ui->sourceTypeComboBox->currentIndex();
+		core::SourceType type = core::SourceType(idx + 1);
+
+		if (type == core::kSourceTypeRTSP) {
+			auto url = ui->sourceComboBox->currentText().toStdString();
+			if (url.empty()) {
+				return;
+			}
+			auto rtspSorce = core::RTSPSource(url, url);
+			rtspSorce.Attach();
+		} else {
+			auto source = localSources[ui->sourceComboBox->currentIndex()].get();
+
+			if (source->Attach()) {
+				attachedSources.push_back(*source);
+				ui->attachedSourceComboBox->addItem(source->Name().c_str());
+			}
+
+			if (type == core::kSourceTypeScreenCapture) {
+				auto screenSource = dynamic_cast<core::ScreenSource*>(source);
+				if (screenSource)
+					screenSource->ScaleFitOutputSize();
+			}
+		}
+	});
+
+	connect(ui->sourcePreviewButton, &QPushButton::clicked, this, [&]() {
+		auto idx = ui->sourceTypeComboBox->currentIndex();
+		core::SourceType type = core::SourceType(idx + 1);
+		if (type == core::kSourceTypeCamera || type == core::kSourceTypeRTSP) {}
+	});
+
+	connect(ui->sourceRemoveButton, &QPushButton::clicked, this, [&]() {
+		auto sourceName = ui->attachedSourceComboBox->currentText().toStdString();
+		if (core::Source::RemoveAttachedByName(sourceName)) {
+			ui->attachedSourceComboBox->removeItem(
+			  ui->attachedSourceComboBox->currentIndex());
+			attachedSources.erase(attachedSources.begin() +
+					      ui->attachedSourceComboBox->currentIndex());
+		}
+	});
+
+	connect(ui->startRecordButton, &QPushButton::clicked, this,
+		[&]() { CoreApp->GetOutputManager()->StartRecording(); });
+
+	connect(ui->stopRecordButton, &QPushButton::clicked, this,
+		[&]() { CoreApp->GetOutputManager()->StopRecording(); });
+
+	connect(ui->settingsButton, &QPushButton::clicked, this, [&]() {
+
+	});
+
+	connect(ui->sourceTypeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+		[&](int idx) {
+			core::SourceType type = core::SourceType(idx + 1);
+
+			localSources.clear();
+			ui->sourceComboBox->clear();
+			ui->sourceComboBox->setEditable(false);
+
+			switch (type) {
+			case core::kSourceTypeUnknow: break;
+			case core::kSourceTypeAudioCapture: {
+				auto audioInputSources =
+				  core::AudioSource::GetAudioSources(core::kSourceTypeAudioCapture);
+				for (auto& item : audioInputSources) {
+					ui->sourceComboBox->addItem(item.Name().c_str());
+
+					auto source =
+					  std::make_unique<core::AudioSource>(std::move(item));
+					localSources.emplace_back(std::move(source));
+				}
+				break;
+			}
+
+			case core::kSourceTypeAudioPlayback: {
+				auto audioOutputSources = core::AudioSource::GetAudioSources(
+				  core::kSourceTypeAudioPlayback);
+				for (auto& item : audioOutputSources) {
+					ui->sourceComboBox->addItem(item.Name().c_str());
+
+					auto source =
+					  std::make_unique<core::AudioSource>(std::move(item));
+					localSources.emplace_back(std::move(source));
+				}
+				break;
+			}
+			case core::kSourceTypeScreenCapture: {
+				auto screenSources = core::ScreenSource::GetScreenSources();
+				for (auto& item : screenSources) {
+					ui->sourceComboBox->addItem(item.Name().c_str());
+
+					auto source =
+					  std::make_unique<core::ScreenSource>(std::move(item));
+					localSources.emplace_back(std::move(source));
+				}
+				break;
+			}
+
+			case core::kSourceTypeCamera: {
+				auto cameraSources = core::CameraSource::GetCameraSources();
+				for (auto& item : cameraSources) {
+					ui->sourceComboBox->addItem(item.Name().c_str());
+
+					auto source =
+					  std::make_unique<core::CameraSource>(std::move(item));
+					localSources.emplace_back(std::move(source));
+				}
+				break;
+			}
+
+			case core::kSourceTypeRTSP: {
+				ui->sourceComboBox->setEditable(true);
+				break;
+			}
+			default: break;
+			}
+		});
+}
+
 void TestMainWindow::LoadLocalSources() {
 	{
 		auto audioInputSources =
@@ -213,9 +340,9 @@ void TestMainWindow::LoadLocalSources() {
 
 		if (!screenSources.empty()) {
 			auto& screenSource = screenSources[0];
-      if (screenSource.Attach()) {
-        screenSource.ScaleFitOutputSize();
-      }
+			if (screenSource.Attach()) {
+				screenSource.ScaleFitOutputSize();
+			}
 		}
 	}
 	{
