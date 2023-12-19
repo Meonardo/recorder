@@ -15,7 +15,7 @@ if(NOT TARGET OBS::json11)
   add_subdirectory("${CMAKE_SOURCE_DIR}/deps/json11" "${CMAKE_BINARY_DIR}/deps/json11")
 endif()
 
-add_executable(recorder)
+add_executable(${PROJECT_NAME})
 
 find_package(Detours REQUIRED)
 
