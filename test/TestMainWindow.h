@@ -5,7 +5,7 @@
 #include <QAction>
 #include <QThread>
 
-#include "../core/scene-source.h"
+#include "corebridge/scene-source.h"
 
 #include "ui_TestMainWindow.h"
 

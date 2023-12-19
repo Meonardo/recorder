@@ -121,24 +121,24 @@ public:
   void Update();
   bool Active();
 
-	void SetStreamAddress(const std::string& addr, const std::string& username,
+  EXPORT void SetStreamAddress(const std::string& addr, const std::string& username,
 			      const std::string& passwd);
-	void GetSteamAddress(const std::string& address, const std::string& username,
+  EXPORT void GetSteamAddress(const std::string& address, const std::string& username,
 			     const std::string& passwd);
 
-	void StartStreaming();
-	void StopStreaming();
+  EXPORT void StartStreaming();
+  EXPORT void StopStreaming();
 
-	void StartRecording();
-	void StopRecording();
+  EXPORT void StartRecording();
+  EXPORT void StopRecording();
 
 	void StartReplayBuffer();
 	void StopReplayBuffer();
 
-	void StartVirtualCam();
-	void StopVirtualCam();
+  EXPORT void StartVirtualCam();
+  EXPORT void StopVirtualCam();
 
-	void SetCurrentRecordingFolder(const char* path);
+  EXPORT void SetCurrentRecordingFolder(const char* path);
     
 	void OnStreamDelayStarting(int seconds) override;
 	void OnStreamDelayStopping(int seconds) override;

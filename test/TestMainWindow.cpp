@@ -2,15 +2,16 @@
 
 #include <Windows.h>
 
+#include <qpushbutton.h>
 #include <QScreen>
 #include <qwindow.h>
 #include <QShowEvent>
 #include <QGuiApplication>
 
-#include "../core/app.h"
-#include "../core/output.h"
-#include "../core/display-helpers.h"
-#include "../core/source-preview.h"
+#include "corebridge/app.h"
+#include "corebridge/output.h"
+#include "corebridge/display-helpers.h"
+#include "corebridge/source-preview.h"
 
 #include "SettingsWindow.h"
 

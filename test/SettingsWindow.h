@@ -9,7 +9,7 @@ class SettingsWindowClass;
 };
 QT_END_NAMESPACE
 
-#include "../core/scene-source.h"
+#include "corebridge/scene-source.h"
 
 class SettingsWindow : public QWidget {
 	Q_OBJECT

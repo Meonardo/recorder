@@ -1,4 +1,6 @@
-#include "../core/app.h"
+#include "corebridge/app.h"
+
+#include <QApplication>
 
 #include "TestMainWindow.h"
 

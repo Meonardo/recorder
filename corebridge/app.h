@@ -2,6 +2,8 @@
 
 #include <atomic>
 
+#include <util/c99defs.h>
+
 #include "utils.h"
 #include "ui.h"
 #include "scene-source.h"
@@ -45,7 +47,7 @@ class App {
 	friend class SceneSourceManager;
 
 public:
-	static App* Get() {
+	EXPORT static App* Get() {
 		static App g_app_;
 		return &g_app_;
 	}
@@ -67,13 +69,13 @@ public:
 
 	profiler_name_store_t* GetProfilerNameStore() const { return profilerNameStore; }
 
-	OutputManager* GetOutputManager() const { return outputManager.get(); }
+  EXPORT OutputManager* GetOutputManager() const { return outputManager.get(); }
 
 	bool IsVcamEnabled() const { return vcamEnabled; }
 
 	obs_service_t* GetService();
 
-	void SaveProject();
+  EXPORT void SaveProject();
 	void SaveProjectDeferred();
 	void DeferSaveBegin();
 	void DeferSaveEnd();
@@ -83,10 +85,10 @@ public:
 	OBSScene GetCurrentScene();
 
 	// audio & video
-	int ResetVideo(int width = 1920, int height = 1080);
+  EXPORT int ResetVideo(int width = 1920, int height = 1080);
 	bool ResetAudio();
-	void ResetOutputs();
-	void ClearSceneData();
+  EXPORT void ResetOutputs();
+  EXPORT void ClearSceneData();
 
 	void* GetApplication() { return application; }
 
@@ -122,7 +124,7 @@ private:
 	ConfigFile basicConfig;
 
 	// frontend api
-	obs_frontend_callbacks* api = nullptr;
+  obs_frontend_callbacks* api = nullptr;
 
 	// scenes & sources
 	OBSWeakSource lastScene;

@@ -1,7 +1,7 @@
 #include "SettingsWindow.h"
 
-#include "../core/app.h"
-#include "../core/output.h"
+#include "corebridge/app.h"
+#include "corebridge/output.h"
 
 #include <map>
 
