@@ -304,16 +304,12 @@ void TestMainWindow::ConfigureUI() {
 		}
 
 		auto& source = attachedSources[idx];
-		if (source.Type() == core::kSourceTypeRTSP ||
-		    source.Type() == core::kSourceTypeCamera) {
-			auto settingsWindow = new SettingsWindow(source);
-			connect(settingsWindow, &SettingsWindow::OnOutputSizeChanged, this,
-				[this]() {
-          auto size = this->size();
-					this->resize(size.width() + 1, size.height() + 1);
-				});
-			settingsWindow->show();
-		}
+		auto settingsWindow = new SettingsWindow(source);
+		connect(settingsWindow, &SettingsWindow::OnOutputSizeChanged, this, [this]() {
+			auto size = this->size();
+			this->resize(size.width() + 1, size.height() + 1);
+		});
+		settingsWindow->show();
 	});
 
 	connect(ui->sourceTypeComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), this,

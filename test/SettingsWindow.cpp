@@ -1,6 +1,7 @@
 #include "SettingsWindow.h"
 
 #include "../core/app.h"
+#include "../core/output.h"
 
 #include <map>
 
@@ -30,9 +31,11 @@ SettingsWindow::SettingsWindow(const core::Source& source, QWidget* parent)
 		if (this->source.Type() == core::kSourceTypeCamera) {
 			core::CameraSource cameraSource(source.Name(), source.ID());
 			cameraSource.ApplyBackgroundRemoval(model, useCpu, true);
-		} else {
+		} else if (this->source.Type() == core::kSourceTypeRTSP) {
 			core::RTSPSource rtspSource(source.Name(), source.ID());
 			rtspSource.ApplyBackgroundRemoval(model, useCpu, true);
+		} else {
+			return;
 		}
 
 		this->close();
@@ -42,9 +45,11 @@ SettingsWindow::SettingsWindow(const core::Source& source, QWidget* parent)
 		if (this->source.Type() == core::kSourceTypeCamera) {
 			core::CameraSource cameraSource(source.Name(), source.ID());
 			cameraSource.ApplyBackgroundRemoval("model", false, false);
-		} else {
+		} else if (this->source.Type() == core::kSourceTypeRTSP) {
 			core::RTSPSource rtspSource(source.Name(), source.ID());
 			rtspSource.ApplyBackgroundRemoval("model", false, false);
+		} else {
+			return;
 		}
 		this->close();
 	});
@@ -62,12 +67,18 @@ SettingsWindow::SettingsWindow(const core::Source& source, QWidget* parent)
 			CoreApp->ResetVideo(3840, 1080);
 		}
 
-    CoreApp->ResetOutputs();
+		CoreApp->ResetOutputs();
 
-    emit OnOutputSizeChanged();
+		emit OnOutputSizeChanged();
 
 		this->close();
 	});
+
+	connect(ui->startVirtualButton, &QPushButton::clicked, this,
+		[this]() { CoreApp->GetOutputManager()->StartVirtualCam(); });
+
+	connect(ui->stopVirtualButton, &QPushButton::clicked, this,
+		[this]() { CoreApp->GetOutputManager()->StopVirtualCam(); });
 }
 
 SettingsWindow::~SettingsWindow() {

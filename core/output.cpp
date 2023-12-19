@@ -80,13 +80,13 @@ static void OBSStopRecording(void* data, calldata_t* params) {
 	os_atomic_set_bool(&recording_active, false);
 	os_atomic_set_bool(&recording_paused, false);
 
-  if (code || last_error != nullptr) {
-    std::string error(last_error);
-    output->callback->OnRecordingStopped(error, code);
-    return;
-  }
+	if (code || last_error != nullptr) {
+		std::string error(last_error);
+		output->callback->OnRecordingStopped(error, code);
+		return;
+	}
 
-  output->callback->OnRecordingStopped("", code);
+	output->callback->OnRecordingStopped("", code);
 }
 
 static void OBSRecordStopping(void* data, calldata_t* /* params */) {
@@ -292,15 +292,15 @@ void OutputManager::StopVirtualCam() {
 }
 
 void OutputManager::SetCurrentRecordingFolder(const char* path) {
-  if (!strlen(path)) {
-    blog(LOG_ERROR, "Can not set recording folder to empty path");
-    return;
-  }
+	if (!strlen(path)) {
+		blog(LOG_ERROR, "Can not set recording folder to empty path");
+		return;
+	}
 
-  auto& profile = CoreApp->GetBasicConfig();
-  config_set_string(profile, "AdvOut", "RecFilePath", path);
-  config_set_string(profile, "SimpleOutput", "FilePath", path);
-  config_save(profile);
+	auto& profile = CoreApp->GetBasicConfig();
+	config_set_string(profile, "AdvOut", "RecFilePath", path);
+	config_set_string(profile, "SimpleOutput", "FilePath", path);
+	config_save(profile);
 }
 
 void OutputManager::OnStreamDelayStarting(int seconds) {}
@@ -432,23 +432,87 @@ static const char* GetStreamOutputType(const obs_service_t* service) {
 
 namespace core {
 
-inline BasicOutputHandler::BasicOutputHandler(OutputCallback* callback) : callback(callback) {}
+inline BasicOutputHandler::BasicOutputHandler(OutputCallback* callback) : callback(callback) {
+	if (CoreApp->IsVcamEnabled()) {
+		virtualCam =
+		  obs_output_create("virtualcam_output", "virtualcam_output", nullptr, nullptr);
+
+		signal_handler_t* signal = obs_output_get_signal_handler(virtualCam);
+		startVirtualCam.Connect(signal, "start", OBSStartVirtualCam, this);
+		stopVirtualCam.Connect(signal, "stop", OBSStopVirtualCam, this);
+		deactivateVirtualCam.Connect(signal, "deactivate", OBSDeactivateVirtualCam, this);
+	}
+}
 
 bool BasicOutputHandler::StartVirtualCam() {
-	return false;
+	if (!CoreApp->IsVcamEnabled())
+		return false;
+
+	/*bool typeIsProgram = main->vcamConfig.type == VCamOutputType::ProgramView;*/
+
+	if (!virtualCamView)
+		virtualCamView = obs_view_create();
+
+	UpdateVirtualCamOutputSource();
+
+	if (!virtualCamVideo) {
+		virtualCamVideo = obs_get_video();
+
+		if (!virtualCamVideo)
+			return false;
+	}
+
+	obs_output_set_media(virtualCam, virtualCamVideo, obs_get_audio());
+	if (!Active())
+		SetupOutputs();
+
+	bool success = obs_output_start(virtualCam);
+	if (!success) {
+		const char* error = obs_output_get_last_error(virtualCam);
+		if (error) {
+			blog(LOG_ERROR, "failed to start virtual camera, %s", error);
+			DestroyVirtualCamView();
+
+			return false;
+		}
+	}
+
+	return success;
 }
 
-void BasicOutputHandler::StopVirtualCam() {}
+void BasicOutputHandler::StopVirtualCam() {
+	if (!CoreApp->IsVcamEnabled())
+		return;
+
+	obs_output_stop(virtualCam);
+}
 
 bool BasicOutputHandler::VirtualCamActive() const {
+	if (CoreApp->IsVcamEnabled()) {
+		return obs_output_active(virtualCam);
+	}
 	return false;
 }
 
-void BasicOutputHandler::UpdateVirtualCamOutputSource() {}
+void BasicOutputHandler::UpdateVirtualCamOutputSource() {
+	if (!CoreApp->IsVcamEnabled() || !virtualCamView)
+		return;
 
-void BasicOutputHandler::DestroyVirtualCamView() {}
+	DestroyVirtualCameraScene();
+}
 
-void BasicOutputHandler::DestroyVirtualCameraScene() {}
+void BasicOutputHandler::DestroyVirtualCamView() {
+	virtualCamVideo = nullptr;
+}
+
+void BasicOutputHandler::DestroyVirtualCameraScene() {
+	if (!vCamSourceScene)
+		return;
+
+	obs_scene_release(vCamSourceScene);
+	vCamSourceScene = nullptr;
+	vCamSourceSceneItem = nullptr;
+}
 
 /* ------------------------------------------------------------------------ */
 

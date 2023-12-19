@@ -69,6 +69,8 @@ public:
 
 	OutputManager* GetOutputManager() const { return outputManager.get(); }
 
+	bool IsVcamEnabled() const { return vcamEnabled; }
+
 	obs_service_t* GetService();
 
 	void SaveProject();
@@ -84,7 +86,7 @@ public:
 	int ResetVideo(int width = 1920, int height = 1080);
 	bool ResetAudio();
 	void ResetOutputs();
-  void ClearSceneData();
+	void ClearSceneData();
 
 	void* GetApplication() { return application; }
 
@@ -110,6 +112,7 @@ private:
 	bool previewEnabled = true;
 	bool closing = false;
 	bool clearingFailed = false;
+	bool vcamEnabled = false;
 
 	// configs & profiles
 	std::string locale;

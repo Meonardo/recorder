@@ -1450,6 +1450,7 @@ bool App::OBSInit() {
 
 	BPtr<char*> failed_modules = mfi.failed_modules;
 	OBSDataAutoRelease obsData = obs_get_private_data();
+  vcamEnabled = obs_data_get_bool(obsData, "vcamEnabled");
 
 	InitBasicConfigDefaults2();
 
