@@ -19,6 +19,17 @@ add_executable(${PROJECT_NAME})
 
 find_package(Detours REQUIRED)
 
+# Submodule deps check
+if(NOT
+   (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/deps/websocketpp/CMakeLists.txt
+    AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/deps/asio/asio/include/asio.hpp))
+  message(FATAL_ERROR "submodule deps not available.")
+endif()
+
+# Tell websocketpp not to use system boost
+add_definitions(-DASIO_STANDALONE)
+add_definitions(-D_WEBSOCKETPP_CPP11_STL_)
+
 find_qt(COMPONENTS Widgets Core)
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Widgets Qt::Core)
 set_target_properties(
@@ -83,6 +94,14 @@ target_link_libraries(
   OBS::json11
   OBS::w32-pthreads
   Detours::Detours
+)
+
+target_include_directories(
+  ${PROJECT_NAME}
+  PRIVATE
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/deps/websocketpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/deps/asio/asio/include
 )
 
 set_property(
