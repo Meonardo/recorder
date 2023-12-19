@@ -30,8 +30,8 @@ endif()
 add_definitions(-DASIO_STANDALONE)
 add_definitions(-D_WEBSOCKETPP_CPP11_STL_)
 
-find_qt(COMPONENTS Widgets Core)
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Widgets Qt::Core)
+find_qt(COMPONENTS Widgets Core Network)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Widgets Qt::Core Qt::Network)
 set_target_properties(
   ${PROJECT_NAME}
   PROPERTIES AUTOMOC ON
@@ -58,6 +58,9 @@ target_sources(
   ${CMAKE_CURRENT_SOURCE_DIR}/core/scene-source.h
   ${CMAKE_CURRENT_SOURCE_DIR}/core/source-preview.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/source-preview.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket-session.h
   ${CMAKE_CURRENT_SOURCE_DIR}/core/defines.h
   ${CMAKE_CURRENT_SOURCE_DIR}/core/qt-display.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/core/qt-display.h
@@ -103,6 +106,8 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/deps/websocketpp
   ${CMAKE_CURRENT_SOURCE_DIR}/deps/asio/asio/include
 )
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE _WIN32_WINNT=0x0601)
 
 set_property(
   TARGET ${PROJECT_NAME}

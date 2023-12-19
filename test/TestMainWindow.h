@@ -11,6 +11,9 @@
 
 #define PREVIEW_EDGE_SIZE 10
 
+struct WebSocketSessionState;
+class WebSocketServer;
+
 class TestMainWindow : public QMainWindow {
 	Q_OBJECT
 
@@ -27,7 +30,7 @@ protected:
 	virtual bool nativeEvent(const QByteArray& eventType, void* message,
 				 qintptr* result) override;
 	virtual void changeEvent(QEvent* event) override;
-  virtual void closeEvent(QCloseEvent* event) override;
+	virtual void closeEvent(QCloseEvent* event) override;
 
 private:
 	Ui::TestMainWindowClass* ui;
@@ -41,9 +44,13 @@ private:
 	bool drawSafeAreas = false;
 	bool drawSpacingHelpers = true;
 
+	WebSocketServer* websocketServer;
+
 	std::vector<std::unique_ptr<core::Source>> localSources;
 
 	std::vector<core::Source> attachedSources;
+
+	std::vector<WebSocketSessionState> websocketSessions;
 
 	void EnablePreviewDisplay(bool enable);
 	void ResizePreview(uint32_t cx, uint32_t cy);
@@ -52,5 +59,5 @@ private:
 
 	void ConfigureUI();
 
-  void HideWhileCapturingScreen(QWidget* window);
+	void HideWhileCapturingScreen(QWidget* window);
 };

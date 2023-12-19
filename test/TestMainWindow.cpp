@@ -1,3 +1,5 @@
+#include "../core/websocket.h"
+
 #include "TestMainWindow.h"
 
 #include <Windows.h>
@@ -16,10 +18,33 @@
 
 TestMainWindow::TestMainWindow(QWidget* parent)
   : QMainWindow(parent),
-    ui(new Ui::TestMainWindowClass()) {
+    ui(new Ui::TestMainWindowClass()),
+    websocketServer(new WebSocketServer()) {
 
 	setAttribute(Qt::WA_NativeWindow);
 	setAttribute(Qt::WA_DeleteOnClose);
+
+	connect(websocketServer, &WebSocketServer::ClientConnected, this,
+		[this](WebSocketSessionState state) {
+			websocketSessions.push_back(state);
+			websocketServer->SendMessageToClient(state, "PONG");
+		});
+
+	connect(websocketServer, &WebSocketServer::ClientDisconnected, this,
+		[this](WebSocketSessionState state, uint16_t closeCode) {
+			websocketSessions.erase(
+			  std::remove_if(websocketSessions.begin(), websocketSessions.end(),
+					 [state](const WebSocketSessionState& item) {
+						 return item.hdl.lock() == state.hdl.lock();
+					 }),
+			  websocketSessions.end());
+		});
+
+	connect(websocketServer, &WebSocketServer::ClientSentMessage, this,
+		[this](WebSocketSessionState state, const std::string& msg) {
+			blog(LOG_INFO, "recv message from: %s, content: %s",
+			     state.remoteAddress.c_str(), msg.c_str());
+		});
 
 	ui->setupUi(this);
 
@@ -98,6 +123,9 @@ void TestMainWindow::Prepare() {
 
 	// 从屏幕捕获时隐藏窗口
 	HideWhileCapturingScreen(this);
+
+	// 启动 websocket 服务
+	websocketServer->Start();
 }
 
 bool TestMainWindow::nativeEvent(const QByteArray&, void* message, qintptr*) {
