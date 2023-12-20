@@ -62,6 +62,29 @@ static void get_source_setting_value(obs_data_t* d, const char* settingName, T& 
 	}
 }
 
+static bool move_source(const std::string& name, obs_order_movement movement) {
+	auto scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return false;
+	}
+
+	auto sceneItem = obs_scene_find_source(scene, name.c_str());
+	if (sceneItem == nullptr) {
+		blog(LOG_ERROR, "FATAL! find scene item failed!");
+		return false;
+	}
+
+	obs_source_t* source = obs_sceneitem_get_source(sceneItem);
+	if (!source) {
+		return false;
+	}
+
+	obs_sceneitem_set_order(sceneItem, movement);
+
+	return true;
+}
+
 namespace core {
 void Scene::AddSignalHandler(signal_handler_t* handler) {
 	container.ref = data;
@@ -92,16 +115,12 @@ SceneSourceManager::SceneSourceManager() {
 				    SceneSourceManager::SourceRenamed, this);
 }
 SceneSourceManager::~SceneSourceManager() {
-  for (auto& item : signalHandlers) {
-    item.Disconnect();
-  }
+	for (auto& item : signalHandlers) { item.Disconnect(); }
 
-  for (auto scene : scenes) {
-    delete scene;
-  }
-  scenes.clear();
+	for (auto scene : scenes) { delete scene; }
+	scenes.clear();
 
-  sources.clear();
+	sources.clear();
 }
 
 void SceneSourceManager::SourceCreated(void* data, calldata_t* params) {
@@ -225,8 +244,8 @@ void SceneSourceManager::RemoveScene(OBSSource source) {
 	}
 
 	if (sel != nullptr) {
-    scenes.erase(std::remove(scenes.begin(), scenes.end(), sel), scenes.end());
-    delete sel;
+		scenes.erase(std::remove(scenes.begin(), scenes.end(), sel), scenes.end());
+		delete sel;
 	}
 
 	CoreApp->SaveProject();
@@ -693,7 +712,7 @@ bool Source::IsAttached() const {
 }
 
 bool Source::Move(vec2 pos) {
-  auto scene = CoreApp->GetCurrentScene();
+	auto scene = CoreApp->GetCurrentScene();
 	if (scene == nullptr) {
 		blog(LOG_ERROR, "FATAL! get current scene failed!");
 		return false;
@@ -718,7 +737,7 @@ bool Source::Move(vec2 pos) {
 }
 
 bool Source::Resize(vec2 size) {
-  auto scene = CoreApp->GetCurrentScene();
+	auto scene = CoreApp->GetCurrentScene();
 	if (scene == nullptr) {
 		blog(LOG_ERROR, "FATAL! get current scene failed!");
 		return false;
@@ -730,7 +749,7 @@ bool Source::Resize(vec2 size) {
 		return false;
 	}
 
-  obs_sceneitem_defer_update_begin(sceneItem);
+	obs_sceneitem_defer_update_begin(sceneItem);
 
 	if (size.x >= 0 && size.y >= 0) {
 		obs_sceneitem_set_scale(sceneItem, &size);
@@ -804,6 +823,58 @@ bool Source::Detach() {
 	obs_source_remove(input);
 
 	return true;
+}
+
+bool Source::BringToFront() {
+	return move_source(name, OBS_ORDER_MOVE_TOP);
+}
+
+bool Source::SendToBack() {
+	return move_source(name, OBS_ORDER_MOVE_BOTTOM);
+}
+
+bool Source::MoveUp() {
+	return move_source(name, OBS_ORDER_MOVE_UP);
+}
+
+bool Source::MoveDown() {
+	return move_source(name, OBS_ORDER_MOVE_DOWN);
+}
+
+void Source::SetHidden(bool hidden) {
+	auto scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return;
+	}
+
+	auto sceneItem = obs_scene_find_source(scene, name.c_str());
+	if (sceneItem == nullptr) {
+		blog(LOG_ERROR, "FATAL! find scene item failed!");
+		return;
+	}
+
+	obs_sceneitem_defer_update_begin(sceneItem);
+	// visibility
+	obs_sceneitem_set_visible(sceneItem, !hidden);
+
+	obs_sceneitem_defer_update_end(sceneItem);
+}
+
+bool Source::IsHidden() const {
+  auto scene = CoreApp->GetCurrentScene();
+  if (scene == nullptr) {
+    blog(LOG_ERROR, "FATAL! get current scene failed!");
+    return false;
+  }
+
+  auto sceneItem = obs_scene_find_source(scene, name.c_str());
+  if (sceneItem == nullptr) {
+    blog(LOG_ERROR, "FATAL! find scene item failed!");
+    return false;
+  }
+
+  return !obs_sceneitem_visible(sceneItem);
 }
 
 std::vector<Source> Source::GetAttachedSources() {

@@ -138,6 +138,10 @@ void TestMainWindow::Prepare() {
 		right.Resize({0.25, 0.25});
 		right.Move({960, 270});
 	}
+  auto& left = attachedSources[1];
+  left.SetHidden(false);
+
+  left.BringToFront();
 #endif
 }
 

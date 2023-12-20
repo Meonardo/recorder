@@ -87,27 +87,51 @@ public:
 	    size({0, 0}) {}
 	virtual ~Source() {}
 
+	// get the source name
 	virtual const std::string& Name() const { return name; }
+	// get the source type
 	virtual SourceType Type() const { return type; }
+	// get the source id
 	virtual const std::string& ID() const { return id; }
+	// get the source original size
 	virtual vec2 Size() const { return size; }
+	// get the source properties, must implement in derived class
 	virtual obs_data_t* Properties() { return nullptr; };
 
+	// whether the source is attached to a scene
 	virtual bool IsAttached() const;
-
+	// move the attached source to a new position
 	virtual bool Move(vec2 pos);
-	virtual bool Resize(vec2 size);
-
+	// resize the attached source
+	virtual bool Resize(vec2 scale);
+	// attach the source to a scene
 	virtual bool Attach();
+	// detach the source from a scene(source will be removed/destroyed)
 	virtual bool Detach();
 
-	static std::vector<Source> GetAttachedSources();
+	// bring the source to front(topmost)
+	virtual bool BringToFront();
+	// send the source to back(most bottom)
+	virtual bool SendToBack();
+	// move the source to front once
+	virtual bool MoveUp();
+	// move the source to back once
+	virtual bool MoveDown();
 
+	// set the source to be hidden or not
+	virtual void SetHidden(bool hidden);
+	// whether the source is hidden
+	virtual bool IsHidden() const;
+
+	// get all attached sources
+	static std::vector<Source> GetAttachedSources();
+	// get attached source by name
 	static std::optional<std::reference_wrapper<Source>>
 	GetAttachedByName(const std::string& name);
-
+	// remove attached source by name
 	static bool RemoveAttachedByName(const std::string& name);
 
+	// get obs-source object
 	OBSSource GetNativeSource();
 
 protected:
