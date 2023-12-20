@@ -261,16 +261,6 @@ void WebSocketServer::SendMessageToClient(const WebSocketSessionState& state, co
 }
 
 bool WebSocketServer::onValidate(websocketpp::connection_hdl hdl) {
-	auto conn = server.get_con_from_hdl(hdl);
-
-	std::vector<std::string> requestedSubprotocols = conn->get_requested_subprotocols();
-	for (auto subprotocol : requestedSubprotocols) {
-		if (subprotocol == "obswebsocket.json" || subprotocol == "obswebsocket.msgpack") {
-			conn->select_subprotocol(subprotocol);
-			break;
-		}
-	}
-
 	return true;
 }
 
@@ -375,6 +365,9 @@ void WebSocketServer::onMessage(
 		state.connectedAt = session->ConnectedAt();
 		state.incomingMessages = session->IncomingMessages();
 		state.outgoingMessages = session->OutgoingMessages();
+
+    blog(LOG_INFO, "[WebSocketServer::onOpen] Receive message from %s, content: %s",
+      session->RemoteAddress().c_str(), payload.c_str());
 
 		// Emit signals
 		emit ClientSentMessage(state, payload);

@@ -1,9 +1,11 @@
 #pragma once
 
 #include <mutex>
+
 #include <QObject>
 #include <QThreadPool>
 #include <QString>
+
 #include <asio.hpp>
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
@@ -18,12 +20,8 @@ enum WebSocketCloseCode {
 	InvalidDataFieldType = 4004,
 	InvalidDataFieldValue = 4005,
 	UnknownOpCode = 4006,
-	NotIdentified = 4007,
-	AlreadyIdentified = 4008,
-	AuthenticationFailed = 4009,
-	UnsupportedRpcVersion = 4010,
-	SessionInvalidated = 4011,
-	UnsupportedFeature = 4012,
+	SessionInvalidated = 4010,
+	UnsupportedFeature = 4011,
 };
 
 struct WebSocketSessionState {

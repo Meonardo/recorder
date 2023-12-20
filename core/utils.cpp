@@ -957,10 +957,10 @@ static inline bool check_path(const char* data, const char* path, std::string& o
 }
 
 bool GetDataFilePath(const char* data, std::string& output) {
-	if (check_path(data, "data/recorder/", output))
+	if (check_path(data, "data/lightrecorder/", output))
 		return true;
 
-	return check_path(data, OBS_DATA_PATH "/recorder/", output);
+	return check_path(data, OBS_DATA_PATH "/lightrecorder/", output);
 }
 
 } // namespace core

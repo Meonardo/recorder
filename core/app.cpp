@@ -1124,6 +1124,8 @@ void App::AppInit() {
 	if (!InitLocale())
 		throw "Failed to load locale";
 
+  blog(LOG_INFO, "start set default profiles");
+
 	config_set_default_string(globalConfig, "Basic", "Profile", Str("Untitled"));
 	config_set_default_string(globalConfig, "Basic", "ProfileDir", Str("Untitled"));
 	config_set_default_string(globalConfig, "Basic", "SceneCollection", Str("Untitled"));

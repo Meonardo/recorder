@@ -13,6 +13,10 @@ class SourcePreview : public QWidget {
 	Q_OBJECT
 public:
 	explicit SourcePreview(std::unique_ptr<core::Source> source, QWidget* parent = nullptr);
+
+  // duplicate the source preview
+  SourcePreview(const SourcePreview&);
+
 	~SourcePreview();
 
 	std::string GetSourceName() const { return source->Name(); }
@@ -20,7 +24,6 @@ public:
 	OBSSource GetNativeSource() const { return nativeSource; }
 
 protected:
-	virtual void closeEvent(QCloseEvent* event) override;
 	virtual bool nativeEvent(const QByteArray& eventType, void* message,
 				 qintptr* result) override;
 
@@ -30,6 +33,8 @@ private:
 
 	OBSQTDisplay* display;
 	QBoxLayout* mainLayout;
+
+  int copyCount = 1;
 
 	void CleanUp();
 };

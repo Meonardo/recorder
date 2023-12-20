@@ -292,10 +292,19 @@ void TestMainWindow::ConfigureUI() {
 				std::string sourceName(source->Name());
 
 				auto preview = new core::ui::SourcePreview(std::move(source));
+				preview->setAttribute(Qt::WA_DeleteOnClose);
 
 				preview->setMinimumSize(480, 270);
 				preview->setWindowTitle(QString::fromStdString(sourceName));
 				preview->show();
+
+				auto preivewCopy = new core::ui::SourcePreview(*preview);
+				preivewCopy->setAttribute(Qt::WA_DeleteOnClose);
+
+				preivewCopy->setMinimumSize(480, 270);
+				preivewCopy->setWindowTitle(QString::fromStdString(sourceName) +
+							    "-copy");
+				preivewCopy->show();
 			} else {
 				auto& source = localSources[ui->sourceComboBox->currentIndex()];
 				std::string sourceName(source->Name());

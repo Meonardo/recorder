@@ -142,5 +142,11 @@ if(CMAKE_COMPILE_WARNING_AS_ERROR)
 endif()
 
 # cmake-format: off
-set_target_properties_obs(${PROJECT_NAME} PROPERTIES FOLDER app OUTPUT_NAME "$<IF:$<PLATFORM_ID:Windows>,recorder64,recorder>")
+set_target_properties_obs(${PROJECT_NAME} PROPERTIES FOLDER app OUTPUT_NAME "$<IF:$<PLATFORM_ID:Windows>,${PROJECT_NAME}64,${PROJECT_NAME}>")
 # cmake-format: on
+
+# copy locale file to OBS_DATA_PATH
+file(COPY ${CMAKE_SOURCE_DIR}/UI/data/locale
+     DESTINATION ${OBS_DATA_PATH}/${PROJECT_NAME})
+file(COPY ${CMAKE_SOURCE_DIR}/UI/data/locale.ini
+     DESTINATION ${OBS_DATA_PATH}/${PROJECT_NAME})
