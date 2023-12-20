@@ -693,13 +693,13 @@ bool Source::IsAttached() const {
 }
 
 bool Source::Move(vec2 pos) {
-	OBSScene scene = CoreApp->GetCurrentScene();
+  auto scene = CoreApp->GetCurrentScene();
 	if (scene == nullptr) {
 		blog(LOG_ERROR, "FATAL! get current scene failed!");
 		return false;
 	}
 
-	OBSSceneItemAutoRelease sceneItem = obs_scene_find_source(scene, name.c_str());
+	auto sceneItem = obs_scene_find_source(scene, name.c_str());
 	if (sceneItem == nullptr) {
 		blog(LOG_ERROR, "FATAL! find source failed!");
 		return false;
@@ -718,19 +718,19 @@ bool Source::Move(vec2 pos) {
 }
 
 bool Source::Resize(vec2 size) {
-	OBSScene scene = CoreApp->GetCurrentScene();
+  auto scene = CoreApp->GetCurrentScene();
 	if (scene == nullptr) {
 		blog(LOG_ERROR, "FATAL! get current scene failed!");
 		return false;
 	}
 
-	OBSSceneItemAutoRelease sceneItem = obs_scene_find_source(scene, name.c_str());
+	auto sceneItem = obs_scene_find_source(scene, name.c_str());
 	if (sceneItem == nullptr) {
 		blog(LOG_ERROR, "FATAL! find source failed!");
 		return false;
 	}
 
-	obs_sceneitem_defer_update_begin(sceneItem);
+  obs_sceneitem_defer_update_begin(sceneItem);
 
 	if (size.x >= 0 && size.y >= 0) {
 		obs_sceneitem_set_scale(sceneItem, &size);
@@ -738,7 +738,7 @@ bool Source::Resize(vec2 size) {
 
 	obs_sceneitem_defer_update_end(sceneItem);
 
-	return false;
+	return true;
 }
 
 bool Source::Attach() {
