@@ -3,150 +3,69 @@ cmake_minimum_required(VERSION 3.22...3.25)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if(NOT TARGET OBS::w32-pthreads)
-  add_subdirectory("${CMAKE_SOURCE_DIR}/deps/w32-pthreads" "${CMAKE_BINARY_DIR}/deps/w32-pthreads")
-endif()
-
-if(NOT TARGET OBS::frontend-api)
-  add_subdirectory("${CMAKE_SOURCE_DIR}/UI/obs-frontend-api" "${CMAKE_BINARY_DIR}/UI/obs-frontend-api")
-endif()
-
-if(NOT TARGET OBS::json11)
-  add_subdirectory("${CMAKE_SOURCE_DIR}/deps/json11" "${CMAKE_BINARY_DIR}/deps/json11")
-endif()
-
 add_executable(${PROJECT_NAME})
+################################################################################
+# include core files
+include(core/core.cmake)
+################################################################################
 
-find_package(Detours REQUIRED)
-
-# Submodule deps check
+# submodule deps check
 if(NOT
    (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/deps/websocketpp/CMakeLists.txt
     AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/deps/asio/asio/include/asio.hpp))
   message(FATAL_ERROR "submodule deps not available.")
 endif()
 
-# Tell websocketpp not to use system boost
+# tell websocketpp not to use system boost
 add_definitions(-DASIO_STANDALONE)
 add_definitions(-D_WEBSOCKETPP_CPP11_STL_)
 
+# Qt
 find_qt(COMPONENTS Widgets Core Network)
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt::Widgets Qt::Core Qt::Network)
 set_target_properties(
   ${PROJECT_NAME}
   PROPERTIES AUTOMOC ON
              AUTOUIC ON
-             AUTORCC ON)
+             AUTORCC ON
+)
 
+# source files
 target_sources(
   ${PROJECT_NAME}
   PRIVATE
 
-  # core app
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/app.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/app.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/app-profile.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/utils.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/utils.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/ui.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/ui.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/output.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/output.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/preview.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/preview.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/scene-source.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/scene-source.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/source-preview.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/source-preview.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/websocket-session.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/defines.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/qt-display.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/qt-display.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/display-helpers.h
-  # ${CMAKE_CURRENT_SOURCE_DIR}/core/api-interface.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/platform.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/platform-windows.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/audio-encoders.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/audio-encoders.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/core/win-dll-blocklist.c
-
   ### test files
+  ${CMAKE_CURRENT_SOURCE_DIR}/test/main.cpp
+
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.h
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/TestMainWindow.ui
-  ${CMAKE_CURRENT_SOURCE_DIR}/test/main.cpp
-
   ${CMAKE_CURRENT_SOURCE_DIR}/test/SettingsWindow.h
   ${CMAKE_CURRENT_SOURCE_DIR}/test/SettingsWindow.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/test/SettingsWindow.ui
+
+  ### websocket files
+  ${CMAKE_CURRENT_SOURCE_DIR}/websocket/websocket.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/websocket/websocket.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/websocket/websocket-session.h
 )
 
-find_package(FFmpeg REQUIRED COMPONENTS avcodec avutil avformat)
-
-target_link_libraries(
-  ${PROJECT_NAME}
-  PRIVATE
-
-  FFmpeg::avcodec
-  FFmpeg::avutil
-  FFmpeg::avformat
-  OBS::libobs
-  OBS::frontend-api
-  OBS::json11
-  OBS::w32-pthreads
-  Detours::Detours
-)
-
+# include directories
 target_include_directories(
   ${PROJECT_NAME}
   PRIVATE
 
   ${CMAKE_CURRENT_SOURCE_DIR}/deps/websocketpp
   ${CMAKE_CURRENT_SOURCE_DIR}/deps/asio/asio/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/websocket
 )
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE _WIN32_WINNT=0x0601)
-
-set_property(
-  TARGET ${PROJECT_NAME}
-  APPEND
-  PROPERTY AUTORCC_OPTIONS --format-version 1)
-
-target_link_options(${PROJECT_NAME} PRIVATE /IGNORE:4098 /IGNORE:4099)
-
-set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
-set_target_properties(
+# link libraries
+target_link_libraries(
   ${PROJECT_NAME}
-  PROPERTIES WIN32_EXECUTABLE TRUE
-             VS_DEBUGGER_COMMAND "${CMAKE_BINARY_DIR}/rundir/$<CONFIG>/bin/64bit/$<TARGET_FILE_NAME:${PROJECT_NAME}>"
-             VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/rundir/$<CONFIG>/bin/64bit")
+  PRIVATE
 
-foreach(graphics_library IN ITEMS opengl metal d3d11)
-  string(TOUPPER ${graphics_library} graphics_library_U)
-  if(TARGET OBS::libobs-${graphics_library})
-    target_compile_definitions(${PROJECT_NAME}
-                               PRIVATE DL_${graphics_library_U}="$<TARGET_FILE_NAME:OBS::libobs-${graphics_library}>")
-  else()
-    target_compile_definitions(${PROJECT_NAME} PRIVATE DL_${graphics_library_U}="")
-  endif()
-endforeach()
-
-get_property(obs_module_list GLOBAL PROPERTY OBS_MODULES_ENABLED)
-list(JOIN obs_module_list "|" SAFE_MODULES)
-target_compile_definitions(${PROJECT_NAME} PRIVATE "SAFE_MODULES=\"${SAFE_MODULES}\"")
-
-if(CMAKE_COMPILE_WARNING_AS_ERROR)
-  add_link_options(/WX-)
-endif()
-
-# cmake-format: off
-set_target_properties_obs(${PROJECT_NAME} PROPERTIES FOLDER app OUTPUT_NAME "$<IF:$<PLATFORM_ID:Windows>,${PROJECT_NAME}64,${PROJECT_NAME}>")
-# cmake-format: on
-
-# copy locale file to OBS_DATA_PATH
-file(COPY ${CMAKE_SOURCE_DIR}/UI/data/locale
-     DESTINATION ${OBS_DATA_PATH}/${PROJECT_NAME})
-file(COPY ${CMAKE_SOURCE_DIR}/UI/data/locale.ini
-     DESTINATION ${OBS_DATA_PATH}/${PROJECT_NAME})
+  # extra link libraries
+  # eg: ${CMAKE_CURRENT_SOURCE_DIR}/deps/extra_lib/libextra_lib.a
+)

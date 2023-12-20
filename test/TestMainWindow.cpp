@@ -1,4 +1,4 @@
-#include "../core/websocket.h"
+#include "websocket.h"
 
 #include "TestMainWindow.h"
 
@@ -126,6 +126,19 @@ void TestMainWindow::Prepare() {
 
 	// 启动 websocket 服务
 	websocketServer->Start();
+
+	// 移动 & 缩放(二分屏: 左右 [1][2] )
+#if 0
+	if (attachedSources.size() >= 2) {
+		auto& left = attachedSources[0];
+		left.Resize({0.375, 0.375});
+		left.Move({0, 270});
+
+		auto& right = attachedSources[1];
+		right.Resize({0.25, 0.25});
+		right.Move({960, 270});
+	}
+#endif
 }
 
 bool TestMainWindow::nativeEvent(const QByteArray&, void* message, qintptr*) {
