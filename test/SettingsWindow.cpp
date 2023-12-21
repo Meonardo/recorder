@@ -71,6 +71,23 @@ SettingsWindow::SettingsWindow(const core::Source& source, QWidget* parent)
 
 		emit OnOutputSizeChanged();
 
+		core::OutputManager* outputManager = CoreApp->GetOutputManager();
+
+		// 视频质量配置
+		std::vector<std::string> videoQualityList = {"High", "Lossy", "Lossless"};
+		outputManager->ChangeVideoContainer(
+		  videoQualityList[ui->encoderComboBox->currentIndex()]);
+
+		// 视频编码器配置
+		outputManager->ChangeVideoEncoder(ui->encoderComboBox->currentText().toStdString());
+
+		// 视频容器配置
+		outputManager->ChangeVideoContainer(
+		  ui->videoContainerCombox->currentText().toStdString());
+
+    // 保存视频配置
+    outputManager->SaveOutputSettings();
+
 		this->close();
 	});
 
@@ -79,6 +96,23 @@ SettingsWindow::SettingsWindow(const core::Source& source, QWidget* parent)
 
 	connect(ui->stopVirtualButton, &QPushButton::clicked, this,
 		[this]() { CoreApp->GetOutputManager()->StopVirtualCam(); });
+
+	// 编码器
+	ui->encoderComboBox->addItem("CPU-x264");
+	ui->encoderComboBox->addItem("GPU-QSV");
+	ui->encoderComboBox->addItem("GPU-NVENC");
+
+  ui->encoderComboBox->setCurrentIndex(2);
+
+	// 编码质量
+	ui->encoderQualityComboBox->addItem("一般");
+	ui->encoderQualityComboBox->addItem("高");
+	ui->encoderQualityComboBox->addItem("无损");
+
+	// 编码容器
+	ui->videoContainerCombox->addItem("MP4");
+	ui->videoContainerCombox->addItem("MKV");
+	ui->videoContainerCombox->addItem("FLV");
 }
 
 SettingsWindow::~SettingsWindow() {

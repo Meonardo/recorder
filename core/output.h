@@ -121,28 +121,52 @@ public:
 	OutputManager();
 	~OutputManager();
 
-  void SetOutputHandler(std::unique_ptr<BasicOutputHandler> handler);
-  void Update();
-  bool Active();
+	void SetOutputHandler(std::unique_ptr<BasicOutputHandler> handler);
 
+	// update the output handler
+	void Update();
+	// check if any output is active
+	bool Active();
+
+	// set the RTMP server address, username and password
 	void SetStreamAddress(const std::string& addr, const std::string& username,
 			      const std::string& passwd);
-
+	// start push output as RTMP to the given address
 	void StartStreaming();
+	// stop streaming to the RTMP server
 	void StopStreaming();
 
+	// change current recoring folfer(default is the `video` folder)
+	void SetCurrentRecordingFolder(const std::string& path);
+	// start recording
 	bool StartRecording();
-  bool PauseRecording();
+	// pause recording if supported
+	bool PauseRecording();
+	// stop recording and save to file
 	void StopRecording();
 
-	void StartReplayBuffer();
-	void StopReplayBuffer();
+  // set the recording format
+  void ChangeVideoContainer(const std::string& container);
+  // set the recording encoder
+  void ChangeVideoEncoder(const std::string& encoder);
+  // set the recording quality
+  void ChangeVideoEncodeQuality(const std::string& quality);
+  // set the recording bitrate(kbps, default is 2500kbps)
+  void UpdateVideoRecodeBitrate(uint32_t bitrate);
 
+	// start virtual camera
 	void StartVirtualCam();
+	// stop virtual camera
 	void StopVirtualCam();
 
-	void SetCurrentRecordingFolder(const char* path);
-    
+	// save the output settings to config file
+	void SaveOutputSettings();
+
+  // change the output size
+  void ChangeOutputSize(uint32_t width, uint32_t height);
+
+	////////////////////////////////////////////////////////////////////////////////////////
+	// overrides
 	void OnStreamDelayStarting(int seconds) override;
 	void OnStreamDelayStopping(int seconds) override;
 	void OnStreamStarted() override;
@@ -163,7 +187,7 @@ public:
 	void OnVirtualCamStopped(std::string error, int code) override;
 
 private:
-  std::unique_ptr<BasicOutputHandler> outputHandler;
+	std::unique_ptr<BasicOutputHandler> outputHandler;
 };
 
 } // namespace core

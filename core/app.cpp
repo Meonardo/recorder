@@ -1635,7 +1635,7 @@ bool App::InitBasicConfigDefaults() {
 	config_set_default_bool(basicConfig, "SimpleOutput", "UseAdvanced", false);
 	config_set_default_string(basicConfig, "SimpleOutput", "Preset", "veryfast");
 	config_set_default_string(basicConfig, "SimpleOutput", "NVENCPreset2", "p5");
-	config_set_default_string(basicConfig, "SimpleOutput", "RecQuality", "Stream");
+	config_set_default_string(basicConfig, "SimpleOutput", "RecQuality", "Small");
 	config_set_default_bool(basicConfig, "SimpleOutput", "RecRB", false);
 	config_set_default_int(basicConfig, "SimpleOutput", "RecRBTime", 20);
 	config_set_default_int(basicConfig, "SimpleOutput", "RecRBSize", 512);

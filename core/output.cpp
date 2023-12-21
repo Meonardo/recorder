@@ -11,6 +11,8 @@
 #define FTL_PROTOCOL "ftl"
 #define RTMP_PROTOCOL "rtmp"
 
+#define FORMAT_STR(str) Str("Basic.Settings.Output.Format." str)
+
 namespace core {
 
 volatile bool streaming_active = false;
@@ -227,31 +229,31 @@ void OutputManager::StartStreaming() {}
 void OutputManager::StopStreaming() {}
 
 bool OutputManager::StartRecording() {
-  if (outputHandler->RecordingActive()) {
-    blog(LOG_ERROR, "recording already start");
-    return false;
-  }
+	if (outputHandler->RecordingActive()) {
+		blog(LOG_ERROR, "recording already start");
+		return false;
+	}
 
 	if (!OutputPathValid()) {
 		blog(LOG_ERROR, "recording stopped because of bad output path");
 		return false;
 	}
 
-  // check disk useage
+	// check disk useage
 	/*if (LowDiskSpace()) {
     DiskSpaceMessage();
     return false;
   }*/
 
-  // save the project
+	// save the project
 	CoreApp->SaveProject();
 
 	if (!outputHandler->StartRecording()) {
 		blog(LOG_ERROR, "failed to start recording");
-    return false;
+		return false;
 	}
 
-  return true;
+	return true;
 }
 
 bool OutputManager::PauseRecording() {
@@ -264,10 +266,6 @@ void OutputManager::StopRecording() {
 	if (outputHandler->RecordingActive())
 		outputHandler->StopRecording();
 }
-
-void OutputManager::StartReplayBuffer() {}
-
-void OutputManager::StopReplayBuffer() {}
 
 void OutputManager::StartVirtualCam() {
 	if (!outputHandler || !outputHandler->virtualCam) {
@@ -303,16 +301,135 @@ void OutputManager::StopVirtualCam() {
 	outputHandler->StopVirtualCam();
 }
 
-void OutputManager::SetCurrentRecordingFolder(const char* path) {
-	if (!strlen(path)) {
+void OutputManager::SetCurrentRecordingFolder(const std::string& path) {
+	if (path.empty()) {
 		blog(LOG_ERROR, "Can not set recording folder to empty path");
 		return;
 	}
 
+	std::string lastSavedPath = GetCurrentOutputPath();
+	if (lastSavedPath == path) {
+		blog(LOG_ERROR, "The output path is already there!");
+		return;
+	}
+
 	auto& profile = CoreApp->GetBasicConfig();
-	config_set_string(profile, "AdvOut", "RecFilePath", path);
-	config_set_string(profile, "SimpleOutput", "FilePath", path);
-	config_save(profile);
+	config_set_string(profile, "AdvOut", "RecFilePath", path.c_str());
+	config_set_string(profile, "SimpleOutput", "FilePath", path.c_str());
+
+	config_save_safe(profile, "tmp", nullptr);
+}
+
+void OutputManager::SaveOutputSettings() {
+	config_save_safe(CoreApp->GetBasicConfig(), "tmp", nullptr);
+	config_save_safe(CoreApp->GetGlobalConfig(), "tmp", nullptr);
+}
+
+void OutputManager::ChangeOutputSize(uint32_t width, uint32_t height) {
+	if (width <= 32 || height <= 32) {
+		blog(LOG_ERROR, "Can not set output size less than 32");
+		return;
+	}
+
+	auto& profile = CoreApp->GetBasicConfig();
+	config_set_uint(profile, "Video", "BaseCX", width);
+	config_set_uint(profile, "Video", "BaseCY", height);
+	config_set_uint(profile, "Video", "OutputCX", width);
+	config_set_uint(profile, "Video", "OutputCY", height);
+
+	config_save_safe(profile, "tmp", nullptr);
+}
+
+void OutputManager::ChangeVideoContainer(const std::string& container) {
+	if (container.empty()) {
+		blog(LOG_ERROR, "Can not set video container to empty");
+		return;
+	}
+
+	std::map<std::string, std::string> formatMap = {
+	  {"FLV", "flv"},
+	  {"MKV", "mkv"},
+	  {"MP4", "mp4"},
+	  {"MOV", "mov"},
+	  {"fMP4", "fragmented_mp4"},
+	  {"fMOV", "fragmented_mov"},
+	  {"TS", "mpegts"},
+	};
+
+	if (formatMap.find(container) == formatMap.end()) {
+		blog(
+		  LOG_ERROR,
+		  "Can not set video container to %s, not support, consider: {MP4, MKV, FLV, MOV, TS} instead",
+		  container.c_str());
+		return;
+	}
+
+	auto& profile = CoreApp->GetBasicConfig();
+	config_set_string(profile, "AdvOut", "RecFormat2", container.c_str());
+	config_set_string(profile, "SimpleOutput", "RecFormat2", container.c_str());
+
+	config_save_safe(profile, "tmp", nullptr);
+}
+
+void OutputManager::ChangeVideoEncoder(const std::string& encoder) {
+	if (encoder.empty()) {
+		blog(LOG_ERROR, "Can not set video encoder to empty");
+		return;
+	}
+
+	std::map<std::string, std::string> encoderMap = {
+	  {"CPU-x264", SIMPLE_ENCODER_X264},
+	  {"GPU-QSV", SIMPLE_ENCODER_QSV},
+	  {"GPU-NVENC", SIMPLE_ENCODER_NVENC},
+	};
+
+	if (encoderMap.find(encoder) == encoderMap.end()) {
+		blog(
+		  LOG_ERROR,
+		  "Can not set video encoder to %s, not support, consider: {CPU-x264, GPU-QSV, GPU-NVENC} instead",
+		  encoder.c_str());
+		return;
+	}
+
+	auto& profile = CoreApp->GetBasicConfig();
+	config_set_string(profile, "SimpleOutput", "RecEncoder", encoderMap[encoder].c_str());
+	config_set_string(profile, "SimpleOutput", "StreamEncoder", encoderMap[encoder].c_str());
+
+	config_save_safe(profile, "tmp", nullptr);
+}
+
+void OutputManager::ChangeVideoEncodeQuality(const std::string& quality) {
+	if (quality.empty()) {
+		blog(LOG_ERROR, "Can not set video encoder quality to empty");
+		return;
+	}
+
+	std::map<std::string, std::string> qualityMap = {
+	  {"Stream", "Stream"},
+	  {"High", "Small"},
+	  {"Lossy", "HQ"},
+	  {"Lossless", "Lossless"},
+	};
+
+	if (qualityMap.find(quality) == qualityMap.end()) {
+		blog(
+		  LOG_ERROR,
+		  "Can not set video encoder quality to %s, not support, consider: {High, Lossy, Lossless} instead",
+		  quality.c_str());
+		return;
+	}
+
+	auto& profile = CoreApp->GetBasicConfig();
+	config_set_string(profile, "SimpleOutput", "RecQuality", qualityMap[quality].c_str());
+
+	config_save_safe(profile, "tmp", nullptr);
+}
+
+void OutputManager::UpdateVideoRecodeBitrate(uint32_t bitrate) {
+	auto& profile = CoreApp->GetBasicConfig();
+	config_set_uint(profile, "SimpleOutput", "VBitrate", bitrate);
+
+	config_save_safe(profile, "tmp", nullptr);
 }
 
 void OutputManager::OnStreamDelayStarting(int seconds) {}
