@@ -112,6 +112,10 @@ protected:
 BasicOutputHandler* CreateSimpleOutputHandler(OutputCallback* callback);
 BasicOutputHandler* CreateAdvancedOutputHandler(OutputCallback* callback);
 
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+
 class OutputManager : public OutputCallback {
 public:
 	OutputManager();
@@ -123,13 +127,12 @@ public:
 
 	void SetStreamAddress(const std::string& addr, const std::string& username,
 			      const std::string& passwd);
-	void GetSteamAddress(const std::string& address, const std::string& username,
-			     const std::string& passwd);
 
 	void StartStreaming();
 	void StopStreaming();
 
-	void StartRecording();
+	bool StartRecording();
+  bool PauseRecording();
 	void StopRecording();
 
 	void StartReplayBuffer();

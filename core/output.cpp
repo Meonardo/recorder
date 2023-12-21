@@ -194,6 +194,10 @@ static bool OutputPathValid() {
 	return path && *path;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+
 OutputManager::OutputManager() {}
 
 OutputManager::~OutputManager() {}
@@ -218,32 +222,40 @@ bool OutputManager::Active() {
 void OutputManager::SetStreamAddress(const std::string& addr, const std::string& username,
 				     const std::string& passwd) {}
 
-void OutputManager::GetSteamAddress(const std::string& address, const std::string& username,
-				    const std::string& passwd) {}
-
 void OutputManager::StartStreaming() {}
 
 void OutputManager::StopStreaming() {}
 
-void OutputManager::StartRecording() {
-	if (outputHandler->RecordingActive())
-		return;
+bool OutputManager::StartRecording() {
+  if (outputHandler->RecordingActive()) {
+    blog(LOG_ERROR, "recording already start");
+    return false;
+  }
 
 	if (!OutputPathValid()) {
-		blog(LOG_ERROR, "Recording stopped because of bad output path");
-		return;
+		blog(LOG_ERROR, "recording stopped because of bad output path");
+		return false;
 	}
 
+  // check disk useage
 	/*if (LowDiskSpace()) {
     DiskSpaceMessage();
-    return;
+    return false;
   }*/
 
+  // save the project
 	CoreApp->SaveProject();
 
 	if (!outputHandler->StartRecording()) {
-		blog(LOG_ERROR, "Failed to start recording");
+		blog(LOG_ERROR, "failed to start recording");
+    return false;
 	}
+
+  return true;
+}
+
+bool OutputManager::PauseRecording() {
+	return false;
 }
 
 void OutputManager::StopRecording() {
