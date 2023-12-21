@@ -124,10 +124,10 @@ void TestMainWindow::Prepare() {
 	// 从屏幕捕获时隐藏窗口
 	HideWhileCapturingScreen(this);
 
-	// 启动 websocket 服务
-	websocketServer->Start();
-
 #if 0
+  // 启动 websocket 服务
+  websocketServer->Start();
+
   // 移动 & 缩放(二分屏: 左右 [1][2] )
 	if (attachedSources.size() >= 2) {
 		auto& left = attachedSources[0];

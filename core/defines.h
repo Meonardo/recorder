@@ -12,7 +12,7 @@
 
 #define CRASH_MESSAGE                                     \
 	"Woops!\n\nWould you like to copy the crash log " \
-	"to the clipboard? The crash log will still be saved to:\n\n%s"
+	"to the clipboard?"
 
 #define STARTUP_SEPARATOR "==== Startup complete ==============================================="
 #define SHUTDOWN_SEPARATOR "==== Shutting down =================================================="

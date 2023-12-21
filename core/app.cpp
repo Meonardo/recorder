@@ -148,7 +148,7 @@ static void main_crash_handler(const char* format, va_list args, void* /* param 
 
 	std::string finalMessage = std::string(message_buffer.get(), message_buffer.get() + size);
 
-	int ret = MessageBoxA(NULL, finalMessage.c_str(), "Woops...",
+	int ret = MessageBoxA(NULL, CRASH_MESSAGE, "Woops...",
 			      MB_YESNO | MB_ICONERROR | MB_TASKMODAL);
 
 	if (ret == IDYES) {
