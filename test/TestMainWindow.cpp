@@ -127,8 +127,8 @@ void TestMainWindow::Prepare() {
 	// 启动 websocket 服务
 	websocketServer->Start();
 
-	// 移动 & 缩放(二分屏: 左右 [1][2] )
 #if 0
+  // 移动 & 缩放(二分屏: 左右 [1][2] )
 	if (attachedSources.size() >= 2) {
 		auto& left = attachedSources[0];
 		left.Resize({0.375, 0.375});
@@ -142,6 +142,17 @@ void TestMainWindow::Prepare() {
   left.SetHidden(false);
 
   left.BringToFront();
+
+  std::string url("rtsp://192.168.99.222:9999/1");
+  auto source = core::Source::GetAttachedByName(url);
+  if (!source) {
+    source = std::make_unique<core::RTSPSource>(url, url);
+    if (!source->Attach()) {
+      return;
+    }
+  }
+  source->Resize({ 0.25, 0.25 });
+  source->Move({ 960, 270 });
 #endif
 }
 

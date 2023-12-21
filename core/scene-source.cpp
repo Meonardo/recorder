@@ -761,7 +761,13 @@ bool Source::Resize(vec2 size) {
 }
 
 bool Source::Attach() {
-	OBSSourceAutoRelease ret = obs_get_source_by_name(name.c_str());
+  OBSScene scene = CoreApp->GetCurrentScene();
+  if (scene == nullptr) {
+    blog(LOG_ERROR, "FATAL! get current scene failed!");
+    return false;
+  }
+
+  auto ret = obs_scene_find_source(scene, name.c_str());
 	if (ret) {
 		blog(LOG_ERROR, "source with name %s already attached!", name.c_str());
 		return false;
@@ -780,11 +786,6 @@ bool Source::Attach() {
 	if ((flags & OBS_SOURCE_MONITOR_BY_DEFAULT) != 0)
 		obs_source_set_monitoring_type(input, OBS_MONITORING_TYPE_MONITOR_ONLY);
 
-	obs_scene_t* scene = CoreApp->GetCurrentScene();
-	if (scene == nullptr) {
-		blog(LOG_ERROR, "FATAL! get current scene failed!");
-		return false;
-	}
 	obs_sceneitem_t* sceneItem = CreateSceneItem(input, scene, true, nullptr, nullptr);
 	if (sceneItem == nullptr) {
 		blog(LOG_ERROR, "create scene item failed!");
@@ -862,19 +863,19 @@ void Source::SetHidden(bool hidden) {
 }
 
 bool Source::IsHidden() const {
-  auto scene = CoreApp->GetCurrentScene();
-  if (scene == nullptr) {
-    blog(LOG_ERROR, "FATAL! get current scene failed!");
-    return false;
-  }
+	auto scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return false;
+	}
 
-  auto sceneItem = obs_scene_find_source(scene, name.c_str());
-  if (sceneItem == nullptr) {
-    blog(LOG_ERROR, "FATAL! find scene item failed!");
-    return false;
-  }
+	auto sceneItem = obs_scene_find_source(scene, name.c_str());
+	if (sceneItem == nullptr) {
+		blog(LOG_ERROR, "FATAL! find scene item failed!");
+		return false;
+	}
 
-  return !obs_sceneitem_visible(sceneItem);
+	return !obs_sceneitem_visible(sceneItem);
 }
 
 std::vector<Source> Source::GetAttachedSources() {
@@ -946,24 +947,42 @@ std::vector<Source> Source::GetAttachedSources() {
 	return result;
 }
 
-std::optional<std::reference_wrapper<Source>> Source::GetAttachedByName(const std::string& name) {
+bool Source::IsAttached(const std::string& name) {
 	if (name.empty())
-		return std::nullopt;
+		return false;
 
 	auto scene = CoreApp->GetCurrentScene();
 	if (scene == nullptr) {
 		blog(LOG_ERROR, "FATAL! get current scene failed!");
-		return std::nullopt;
+		return false;
 	}
 
 	auto sceneItem = obs_scene_find_source(scene, name.c_str());
 	if (sceneItem == nullptr) {
-		return std::nullopt;
+		return false;
+	}
+
+	return true;
+}
+
+std::unique_ptr<Source> Source::GetAttachedByName(const std::string& name) {
+	if (name.empty())
+		return nullptr;
+
+	auto scene = CoreApp->GetCurrentScene();
+	if (scene == nullptr) {
+		blog(LOG_ERROR, "FATAL! get current scene failed!");
+		return nullptr;
+	}
+
+	auto sceneItem = obs_scene_find_source(scene, name.c_str());
+	if (sceneItem == nullptr) {
+		return nullptr;
 	}
 
 	OBSSource source = obs_sceneitem_get_source(sceneItem);
 	if (source == nullptr) {
-		return std::nullopt;
+		return nullptr;
 	}
 	OBSDataAutoRelease privateSettings = obs_sceneitem_get_private_settings(sceneItem);
 	// get settings
@@ -977,35 +996,33 @@ std::optional<std::reference_wrapper<Source>> Source::GetAttachedByName(const st
 			// screen capture
 			std::string id;
 			get_source_setting_value<std::string>(settings, "monitor_id", id);
-			auto item = core::ScreenSource(name, id);
-			return std::ref(item);
+			return std::make_unique<ScreenSource>(name, id);
 		} else if (inputType == "rtsp_source") {
 			// rtsp source
 			std::string url;
 			get_source_setting_value<std::string>(settings, "url", url);
-			auto item = core::RTSPSource(name, url);
-			return std::ref(item);
+			return std::make_unique<ScreenSource>(name, url);
 		} else if (inputType == "dshow_input") {
 			// camera
 			std::string id;
 			get_source_setting_value<std::string>(settings, "video_device_id", id);
-			auto item = core::CameraSource(name, id);
-			return std::ref(item);
+			return std::make_unique<CameraSource>(name, id);
 		} else if (inputType == "wasapi_output_capture") {
 			// speakers
 			std::string id;
 			auto item = core::AudioSource(name, id, core::kSourceTypeAudioPlayback);
-			return std::ref(item);
+			return std::make_unique<AudioSource>(name, id,
+							     core::kSourceTypeAudioPlayback);
 		} else if (inputType == "wasapi_input_capture") {
 			// microphones
 			std::string id;
 			get_source_setting_value<std::string>(settings, "device_id", id);
-			auto item = core::AudioSource(name, id, core::kSourceTypeAudioCapture);
-			return std::ref(item);
+			return std::make_unique<AudioSource>(name, id,
+							     core::kSourceTypeAudioCapture);
 		}
 	}
 
-	return std::nullopt;
+	return nullptr;
 }
 
 bool Source::RemoveAttachedByName(const std::string& name) {

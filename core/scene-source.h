@@ -125,9 +125,12 @@ public:
 
 	// get all attached sources
 	static std::vector<Source> GetAttachedSources();
+
 	// get attached source by name
-	static std::optional<std::reference_wrapper<Source>>
-	GetAttachedByName(const std::string& name);
+	static std::unique_ptr<Source> GetAttachedByName(const std::string& name);
+	// check if the name of the source is attached to a scene
+	static bool IsAttached(const std::string& sourceName);
+
 	// remove attached source by name
 	static bool RemoveAttachedByName(const std::string& name);
 
@@ -204,5 +207,4 @@ public:
 
 	bool ScaleFitOutputSize();
 };
-
 } // namespace core
